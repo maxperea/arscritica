@@ -107,6 +107,10 @@ export function bestMoviesRightNow(
            SELECT strftime('%Y-%m-%dT%H:%M:%fZ', MAX(COALESCE(published_at, scraped_at)), ?)
            FROM reviews
          )
+         AND (m.year IS NULL OR m.year >= (
+           SELECT CAST(strftime('%Y', MAX(COALESCE(published_at, scraped_at))) AS INTEGER) - 1
+           FROM reviews
+         ))
        ORDER BY rankScore DESC, reviewCount DESC, m.title
        LIMIT ?`,
     ),

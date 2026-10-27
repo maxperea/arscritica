@@ -156,7 +156,7 @@ function filterByGenre(movies: TopListMovie[], genreName: string | undefined): T
 }
 
 function periodCaption(period: string): string {
-  if (period === recentPeriod) return `premiär senaste ${recentDays} dagarna`;
+  if (period === recentPeriod) return `nya filmer recenserade senaste ${recentDays} dagarna`;
   if (period === allPeriod) return "";
   return `premiär ${period}`;
 }

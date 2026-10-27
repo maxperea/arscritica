@@ -15,7 +15,7 @@ export interface Genre {
 }
 
 export function periods(movies: TopListMovie[]): string[] {
-  const years = [...new Set(movies.map(reviewYear))]
+  const years = [...new Set(movies.map(releaseYear))]
     .filter((year) => year >= firstYear)
     .sort((a, b) => b - a)
     .map(String);
@@ -70,11 +70,12 @@ export function ranks(movies: { rankScore: number }[]): number[] {
 function inPeriod(movie: TopListMovie, period: string, now: number): boolean {
   if (period === allPeriod) return true;
   if (period === recentPeriod) {
-    return now - Date.parse(movie.firstReviewedAt) <= recentDays * dayMs;
+    const recentlyReviewed = now - Date.parse(movie.firstReviewedAt) <= recentDays * dayMs;
+    return recentlyReviewed && releaseYear(movie) >= new Date(now).getFullYear() - 1;
   }
-  return reviewYear(movie).toString() === period;
+  return releaseYear(movie).toString() === period;
 }
 
-function reviewYear(movie: TopListMovie): number {
-  return Number(movie.firstReviewedAt.slice(0, 4));
+function releaseYear(movie: TopListMovie): number {
+  return movie.year ?? Number(movie.firstReviewedAt.slice(0, 4));
 }
