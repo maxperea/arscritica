@@ -7,6 +7,7 @@ export interface PublicationInput {
   slug: string;
   name: string;
   url: string;
+  paywalled?: boolean;
 }
 
 export interface MovieInput {
@@ -39,9 +40,15 @@ export interface ReviewInput {
 
 export function upsertPublication(db: Database, publication: PublicationInput): number {
   db.prepare(
-    `INSERT INTO publications (slug, name, url) VALUES (:slug, :name, :url)
-     ON CONFLICT (slug) DO UPDATE SET name = excluded.name, url = excluded.url`,
-  ).run({ slug: publication.slug, name: publication.name, url: publication.url });
+    `INSERT INTO publications (slug, name, url, paywalled) VALUES (:slug, :name, :url, :paywalled)
+     ON CONFLICT (slug) DO UPDATE SET
+       name = excluded.name, url = excluded.url, paywalled = excluded.paywalled`,
+  ).run({
+    slug: publication.slug,
+    name: publication.name,
+    url: publication.url,
+    paywalled: publication.paywalled ? 1 : 0,
+  });
   return getRow<{ id: number }>(
     db.prepare("SELECT id FROM publications WHERE slug = ?"),
     publication.slug,

@@ -26,6 +26,7 @@ export interface MovieReview {
   publishedAt: string | null;
   publicationSlug: string;
   publicationName: string;
+  publicationPaywalled: boolean;
 }
 
 export interface MovieDetail extends MovieSummary {
@@ -36,6 +37,7 @@ export interface PublicationSummary {
   slug: string;
   name: string;
   url: string;
+  paywalled: boolean;
   reviewCount: number;
   averageScore: number | null;
 }
@@ -77,7 +79,7 @@ const movieSummaryFrom = `
 const movieSummarySelect = `SELECT ${movieSummaryColumns} ${movieSummaryFrom}`;
 
 const publicationSummarySelect = `
-  SELECT p.slug, p.name, p.url, COUNT(r.id) AS reviewCount,
+  SELECT p.slug, p.name, p.url, p.paywalled, COUNT(r.id) AS reviewCount,
     CAST(ROUND(AVG(r.normalized_score)) AS INTEGER) AS averageScore
   FROM publications p
   LEFT JOIN reviews r ON r.publication_id = p.id`;
@@ -121,7 +123,8 @@ export function getMovie(db: Database, slug: string): MovieDetail | undefined {
     db.prepare(
       `SELECT r.url, r.raw_score AS rawScore, r.scale_max AS scaleMax,
          r.normalized_score AS normalizedScore, r.critic, r.published_at AS publishedAt,
-         p.slug AS publicationSlug, p.name AS publicationName
+         p.slug AS publicationSlug, p.name AS publicationName,
+         p.paywalled AS publicationPaywalled
        FROM reviews r
        JOIN movies m ON m.id = r.movie_id
        JOIN publications p ON p.id = r.publication_id
@@ -130,11 +133,19 @@ export function getMovie(db: Database, slug: string): MovieDetail | undefined {
     ),
     slug,
   );
-  return { ...movie, reviews };
+  return {
+    ...movie,
+    reviews: reviews.map((review) => ({
+      ...review,
+      publicationPaywalled: Boolean(review.publicationPaywalled),
+    })),
+  };
 }
 
 export function listPublications(db: Database): PublicationSummary[] {
-  return allRows(db.prepare(`${publicationSummarySelect} GROUP BY p.id ORDER BY p.name`));
+  return allRows<PublicationSummary>(
+    db.prepare(`${publicationSummarySelect} GROUP BY p.id ORDER BY p.name`),
+  ).map(withPaywalledFlag);
 }
 
 export function getPublication(db: Database, slug: string): PublicationDetail | undefined {
@@ -156,7 +167,11 @@ export function getPublication(db: Database, slug: string): PublicationDetail | 
     ),
     slug,
   );
-  return { ...publication, reviews };
+  return { ...withPaywalledFlag(publication), reviews };
+}
+
+function withPaywalledFlag(publication: PublicationSummary): PublicationSummary {
+  return { ...publication, paywalled: Boolean(publication.paywalled) };
 }
 
 export function movieSlugs(db: Database): string[] {

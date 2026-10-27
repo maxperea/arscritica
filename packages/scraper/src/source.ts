@@ -16,6 +16,7 @@ export interface Source {
   slug: string;
   name: string;
   url: string;
+  paywalled?: boolean;
   listReviewUrls(context: ListContext): Promise<string[]>;
   parseReview(url: string, html: string): ScrapedReview | null;
 }

@@ -41,6 +41,7 @@ async function scrapeSource(source: Source, options: ScrapeOptions): Promise<Sou
     slug: source.slug,
     name: source.name,
     url: source.url,
+    paywalled: source.paywalled,
   });
   const latest = latestReviewDate(db, publicationId);
   const since = options.since ?? (latest ? new Date(latest) : undefined);

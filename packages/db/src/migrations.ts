@@ -47,4 +47,7 @@ export const migrations: string[] = [
     PRIMARY KEY (movie_id, name)
   );
   `,
+  `
+  ALTER TABLE publications ADD COLUMN paywalled INTEGER NOT NULL DEFAULT 0;
+  `,
 ];
