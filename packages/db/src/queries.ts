@@ -8,7 +8,6 @@ export interface MovieSummary {
   year: number | null;
   posterPath: string | null;
   score: number;
-  rankScore: number;
   reviewCount: number;
   latestReviewAt: string;
 }
@@ -61,18 +60,15 @@ export interface PublicationDetail extends PublicationSummary {
 
 export interface BestMoviesOptions {
   limit?: number;
+  minReviews?: number;
   windowDays?: number;
 }
 
 const reviewedAt = "COALESCE(r.published_at, r.scraped_at)";
-const rankPriorWeight = 3;
-const rankScore = `ROUND((SUM(r.normalized_score) + ${rankPriorWeight} *
-    (SELECT AVG(normalized_score) FROM reviews)) / (COUNT(r.id) + ${rankPriorWeight}), 1)`;
 
 const movieSummaryColumns = `
   m.slug, m.title, m.original_title AS originalTitle, m.year, m.poster_path AS posterPath,
     CAST(ROUND(AVG(r.normalized_score)) AS INTEGER) AS score,
-    ${rankScore} AS rankScore,
     COUNT(r.id) AS reviewCount,
     MAX(${reviewedAt}) AS latestReviewAt`;
 
@@ -97,13 +93,14 @@ export function recentlyReviewedMovies(db: Database, limit = 12): MovieSummary[]
 
 export function bestMoviesRightNow(
   db: Database,
-  { limit = 10, windowDays = 60 }: BestMoviesOptions = {},
+  { limit = 10, minReviews = 2, windowDays = 60 }: BestMoviesOptions = {},
 ): MovieSummary[] {
   return allRows(
     db.prepare(
       `${movieSummarySelect}
        GROUP BY m.id
-       HAVING MIN(${reviewedAt}) >= (
+       HAVING COUNT(r.id) >= ?
+         AND MIN(${reviewedAt}) >= (
            SELECT strftime('%Y-%m-%dT%H:%M:%fZ', MAX(COALESCE(published_at, scraped_at)), ?)
            FROM reviews
          )
@@ -111,9 +108,10 @@ export function bestMoviesRightNow(
            SELECT CAST(strftime('%Y', MAX(COALESCE(published_at, scraped_at))) AS INTEGER) - 1
            FROM reviews
          ))
-       ORDER BY rankScore DESC, reviewCount DESC, m.title
+       ORDER BY score DESC, reviewCount DESC, m.title
        LIMIT ?`,
     ),
+    minReviews,
     `-${windowDays} days`,
     limit,
   );
@@ -204,7 +202,7 @@ export function topListMovies(db: Database): TopListMovie[] {
            (SELECT name FROM movie_genres g WHERE g.movie_id = m.id ORDER BY name)) AS genres
        ${movieSummaryFrom}
        GROUP BY m.id
-       ORDER BY rankScore DESC, reviewCount DESC, m.title`,
+       ORDER BY score DESC, reviewCount DESC, m.title`,
     ),
   ).map((movie) => ({ ...movie, genres: JSON.parse(movie.genres) as string[] }));
 }
