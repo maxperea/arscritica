@@ -40,4 +40,11 @@ export const migrations: string[] = [
   CREATE INDEX reviews_movie_id ON reviews (movie_id);
   CREATE INDEX reviews_publication_id ON reviews (publication_id);
   `,
+  `
+  CREATE TABLE movie_genres (
+    movie_id INTEGER NOT NULL REFERENCES movies (id),
+    name TEXT NOT NULL,
+    PRIMARY KEY (movie_id, name)
+  );
+  `,
 ];

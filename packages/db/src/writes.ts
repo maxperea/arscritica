@@ -15,6 +15,7 @@ export interface MovieInput {
   originalTitle?: string;
   year?: number;
   posterPath?: string;
+  genres?: string[];
 }
 
 export interface MovieCandidate {
@@ -69,7 +70,9 @@ export function insertMovie(db: Database, movie: MovieInput): number {
        VALUES (:tmdbId, :title, :originalTitle, :year, :posterPath, :slug, :titleKey, :originalTitleKey)`,
     )
     .run({ ...movieColumns(movie), slug: uniqueMovieSlug(db, movie) });
-  return Number(result.lastInsertRowid);
+  const movieId = Number(result.lastInsertRowid);
+  if (movie.genres) setMovieGenres(db, movieId, movie.genres);
+  return movieId;
 }
 
 export function attachTmdbData(db: Database, movieId: number, movie: MovieInput): void {
@@ -79,6 +82,23 @@ export function attachTmdbData(db: Database, movieId: number, movie: MovieInput)
        original_title_key = :originalTitleKey
      WHERE id = :id`,
   ).run({ ...movieColumns(movie), id: movieId });
+  if (movie.genres) setMovieGenres(db, movieId, movie.genres);
+}
+
+export function setMovieGenres(db: Database, movieId: number, genres: string[]): void {
+  db.prepare("DELETE FROM movie_genres WHERE movie_id = ?").run(movieId);
+  const insert = db.prepare("INSERT OR IGNORE INTO movie_genres (movie_id, name) VALUES (?, ?)");
+  for (const genre of genres) insert.run(movieId, genre);
+}
+
+export function tmdbMoviesWithoutGenres(db: Database): { id: number; tmdbId: number }[] {
+  return allRows(
+    db.prepare(
+      `SELECT id, tmdb_id AS tmdbId FROM movies m
+       WHERE tmdb_id IS NOT NULL
+         AND NOT EXISTS (SELECT 1 FROM movie_genres g WHERE g.movie_id = m.id)`,
+    ),
+  );
 }
 
 export function reviewExists(db: Database, url: string): boolean {

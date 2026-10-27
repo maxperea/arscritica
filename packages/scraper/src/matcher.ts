@@ -67,5 +67,6 @@ function toMovieInput(movie: TmdbMovie): MovieInput {
     originalTitle: movie.originalTitle,
     year: movie.year,
     posterPath: movie.posterPath,
+    genres: movie.genres,
   };
 }

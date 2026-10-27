@@ -7,6 +7,7 @@ export interface TmdbMovie {
   originalTitle: string;
   year?: number;
   posterPath?: string;
+  genres: string[];
 }
 
 export interface MovieLookup {
@@ -19,10 +20,17 @@ interface TmdbSearchResult {
   original_title: string;
   release_date?: string;
   poster_path?: string | null;
+  genre_ids?: number[];
+}
+
+interface TmdbGenre {
+  id: number;
+  name: string;
 }
 
 export class TmdbClient implements MovieLookup {
   private readonly apiKey: string;
+  private genreNames?: Promise<Map<number, string>>;
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -47,12 +55,33 @@ export class TmdbClient implements MovieLookup {
     );
   }
 
+  async movieGenres(tmdbId: number): Promise<string[]> {
+    const movie = await this.get<{ genres?: TmdbGenre[] }>(`movie/${tmdbId}`);
+    return (movie.genres ?? []).map((genre) => genre.name);
+  }
+
   private async search(query: string, year?: number): Promise<TmdbMovie[]> {
-    const url = new URL("https://api.themoviedb.org/3/search/movie");
-    url.searchParams.set("query", query);
+    const params: Record<string, string> = { query, include_adult: "false" };
+    if (year) params.primary_release_year = String(year);
+    const [body, genreNames] = await Promise.all([
+      this.get<{ results?: TmdbSearchResult[] }>("search/movie", params),
+      this.loadGenreNames(),
+    ]);
+    return (body.results ?? []).map((result) => toTmdbMovie(result, genreNames));
+  }
+
+  private loadGenreNames(): Promise<Map<number, string>> {
+    this.genreNames ??= this.get<{ genres?: TmdbGenre[] }>("genre/movie/list").then(
+      (body) => new Map((body.genres ?? []).map((genre) => [genre.id, genre.name])),
+    );
+    this.genreNames.catch(() => (this.genreNames = undefined));
+    return this.genreNames;
+  }
+
+  private async get<T>(path: string, params: Record<string, string> = {}): Promise<T> {
+    const url = new URL(`https://api.themoviedb.org/3/${path}`);
     url.searchParams.set("language", "sv-SE");
-    url.searchParams.set("include_adult", "false");
-    if (year) url.searchParams.set("primary_release_year", String(year));
+    for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
 
     const headers: Record<string, string> = {
       accept: "application/json",
@@ -62,13 +91,12 @@ export class TmdbClient implements MovieLookup {
     else url.searchParams.set("api_key", this.apiKey);
 
     const response = await fetch(url, { headers, signal: AbortSignal.timeout(15_000) });
-    if (!response.ok) throw new Error(`TMDB search failed with HTTP ${response.status}`);
-    const body = (await response.json()) as { results?: TmdbSearchResult[] };
-    return (body.results ?? []).map(toTmdbMovie);
+    if (!response.ok) throw new Error(`TMDB request failed with HTTP ${response.status}`);
+    return (await response.json()) as T;
   }
 }
 
-function toTmdbMovie(result: TmdbSearchResult): TmdbMovie {
+function toTmdbMovie(result: TmdbSearchResult, genreNames: Map<number, string>): TmdbMovie {
   const year = Number(result.release_date?.slice(0, 4));
   return {
     id: result.id,
@@ -76,5 +104,6 @@ function toTmdbMovie(result: TmdbSearchResult): TmdbMovie {
     originalTitle: result.original_title,
     year: year || undefined,
     posterPath: result.poster_path ?? undefined,
+    genres: (result.genre_ids ?? []).flatMap((id) => genreNames.get(id) ?? []),
   };
 }
