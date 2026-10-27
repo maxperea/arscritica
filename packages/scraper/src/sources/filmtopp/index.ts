@@ -2,7 +2,7 @@ import { load } from "cheerio";
 import type { Source } from "../../source";
 
 const listUrl = "https://www.filmtopp.se/nyheter/recensioner/";
-const maxPages = 5;
+const maxPages = 40;
 const dayMs = 24 * 60 * 60 * 1000;
 
 const swedishMonths = [

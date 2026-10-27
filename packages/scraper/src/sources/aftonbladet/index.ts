@@ -3,7 +3,7 @@ import type { Source } from "../../source";
 
 const LIST_URL = "https://www.aftonbladet.se/tagg/filmrecensioner";
 const FILM_ARTICLE = /^https:\/\/www\.aftonbladet\.se\/nojesbladet\/film\/a\//;
-const MAX_PAGES = 10;
+const MAX_PAGES = 20;
 
 interface LinkedData {
   "@type"?: string;
