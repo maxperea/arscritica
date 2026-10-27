@@ -3,11 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import type { TopListMovie } from "@arscritica/db";
 import { MovieList } from "@/components/movie-list";
-import { reviewCountLabel } from "@/lib/format";
 import {
   allPeriod,
   genres,
-  minReviewsFor,
   movieGenres,
   periodLabel,
   periodMovies,
@@ -77,7 +75,6 @@ export function TopLists({ movies }: { movies: TopListMovie[] }) {
 
   const { period, genre } = selection;
   const { genreOptions, genreName, results, alternative } = view;
-  const threshold = minReviewsFor(period);
   const visible = showAll ? results : results.slice(0, pageSize);
 
   return (
@@ -120,11 +117,7 @@ export function TopLists({ movies }: { movies: TopListMovie[] }) {
       {results.length ? (
         <>
           <p className="muted caption">
-            {[
-              periodCaption(period),
-              `minst ${reviewCountLabel(threshold)}`,
-              results.length === 1 ? "1 film" : `${results.length} filmer`,
-            ]
+            {[periodCaption(period), results.length === 1 ? "1 film" : `${results.length} filmer`]
               .filter(Boolean)
               .join(" · ")
               .replace(/^./, (letter) => letter.toUpperCase())}
@@ -139,8 +132,7 @@ export function TopLists({ movies }: { movies: TopListMovie[] }) {
       ) : (
         <div className="empty-state">
           <p>
-            Inga filmer{genreName ? ` i genren ${genreName}` : ""} med minst{" "}
-            {reviewCountLabel(threshold)}
+            Inga filmer{genreName ? ` i genren ${genreName}` : ""}
             {emptyPeriodPhrase(period)}.
           </p>
           {genre && (
@@ -170,7 +162,7 @@ function periodCaption(period: string): string {
 }
 
 function emptyPeriodPhrase(period: string): string {
-  if (period === recentPeriod) return ` de senaste ${recentDays} dagarna`;
+  if (period === recentPeriod) return ` under de senaste ${recentDays} dagarna`;
   if (period === allPeriod) return "";
   return ` med premiär ${period}`;
 }

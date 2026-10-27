@@ -3,7 +3,6 @@ import type { TopListMovie } from "@arscritica/db";
 export const recentPeriod = "just-nu";
 export const allPeriod = "alla";
 export const recentDays = 90;
-export const minReviews = { recent: 3, year: 5, all: 5 };
 
 const firstYear = 2024;
 const dayMs = 24 * 60 * 60 * 1000;
@@ -29,15 +28,8 @@ export function periodLabel(period: string): string {
   return period;
 }
 
-export function minReviewsFor(period: string): number {
-  if (period === recentPeriod) return minReviews.recent;
-  if (period === allPeriod) return minReviews.all;
-  return minReviews.year;
-}
-
 export function periodMovies(movies: TopListMovie[], period: string, now: number): TopListMovie[] {
-  const threshold = minReviewsFor(period);
-  return movies.filter((movie) => movie.reviewCount >= threshold && inPeriod(movie, period, now));
+  return movies.filter((movie) => inPeriod(movie, period, now));
 }
 
 export function movieGenres(movie: TopListMovie): string[] {
