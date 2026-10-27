@@ -12,6 +12,11 @@ export interface MovieSummary {
   latestReviewAt: string;
 }
 
+export interface TopListMovie extends MovieSummary {
+  firstReviewedAt: string;
+  genres: string[];
+}
+
 export interface MovieReview {
   url: string;
   rawScore: number;
@@ -59,13 +64,17 @@ export interface BestMoviesOptions {
 
 const reviewedAt = "COALESCE(r.published_at, r.scraped_at)";
 
-const movieSummarySelect = `
-  SELECT m.slug, m.title, m.original_title AS originalTitle, m.year, m.poster_path AS posterPath,
+const movieSummaryColumns = `
+  m.slug, m.title, m.original_title AS originalTitle, m.year, m.poster_path AS posterPath,
     CAST(ROUND(AVG(r.normalized_score)) AS INTEGER) AS score,
     COUNT(r.id) AS reviewCount,
-    MAX(${reviewedAt}) AS latestReviewAt
+    MAX(${reviewedAt}) AS latestReviewAt`;
+
+const movieSummaryFrom = `
   FROM movies m
   JOIN reviews r ON r.movie_id = m.id`;
+
+const movieSummarySelect = `SELECT ${movieSummaryColumns} ${movieSummaryFrom}`;
 
 const publicationSummarySelect = `
   SELECT p.slug, p.name, p.url, COUNT(r.id) AS reviewCount,
@@ -164,4 +173,17 @@ export function publicationSlugs(db: Database): string[] {
 
 export function searchIndex(db: Database): MovieSummary[] {
   return allRows(db.prepare(`${movieSummarySelect} GROUP BY m.id ORDER BY m.title`));
+}
+
+export function topListMovies(db: Database): TopListMovie[] {
+  return allRows<Omit<TopListMovie, "genres"> & { genres: string }>(
+    db.prepare(
+      `SELECT ${movieSummaryColumns}, MIN(${reviewedAt}) AS firstReviewedAt,
+         (SELECT json_group_array(name) FROM
+           (SELECT name FROM movie_genres g WHERE g.movie_id = m.id ORDER BY name)) AS genres
+       ${movieSummaryFrom}
+       GROUP BY m.id
+       ORDER BY score DESC, reviewCount DESC, m.title`,
+    ),
+  ).map((movie) => ({ ...movie, genres: JSON.parse(movie.genres) as string[] }));
 }
