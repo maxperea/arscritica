@@ -56,10 +56,10 @@ export function genreSlug(name: string): string {
     .replace(/^-|-$/g, "");
 }
 
-export function ranks(movies: { score: number }[]): number[] {
+export function ranks(movies: { rankScore: number }[]): number[] {
   let rank = 0;
   return movies.map((movie, index) => {
-    if (index === 0 || movie.score !== movies[index - 1]?.score) rank = index + 1;
+    if (index === 0 || movie.rankScore !== movies[index - 1]?.rankScore) rank = index + 1;
     return rank;
   });
 }

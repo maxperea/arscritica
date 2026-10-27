@@ -14,7 +14,7 @@ export default function HomePage() {
         {best.length ? (
           <MovieList movies={best} />
         ) : (
-          <p className="muted">Inga filmer med tillräckligt många recensioner ännu.</p>
+          <p className="muted">Inga nyligen recenserade filmer ännu.</p>
         )}
       </section>
       <section>
