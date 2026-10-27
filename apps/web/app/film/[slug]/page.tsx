@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMovie, movieSlugs } from "@arscritica/db";
 import { Poster } from "@/components/poster";
+import { PaywallIcon } from "@/components/paywall-icon";
 import { ScoreBadge } from "@/components/score-badge";
 import { getDb } from "@/lib/db";
 import { formatDate, formatRawScore, reviewCountLabel } from "@/lib/format";
@@ -69,6 +70,7 @@ export default async function MoviePage({ params }: Props) {
               target="_blank"
               rel="noopener noreferrer"
             >
+              {review.publicationPaywalled && <PaywallIcon />}
               Läs recensionen ↗
             </a>
           </li>

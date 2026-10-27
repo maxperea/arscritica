@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPublication, publicationSlugs } from "@arscritica/db";
+import { PaywallIcon } from "@/components/paywall-icon";
 import { ScoreBadge } from "@/components/score-badge";
 import { getDb } from "@/lib/db";
 import { formatDate, formatRawScore, reviewCountLabel } from "@/lib/format";
@@ -59,6 +60,7 @@ export default async function PublicationPage({ params }: Props) {
               target="_blank"
               rel="noopener noreferrer"
             >
+              {publication.paywalled && <PaywallIcon />}
               Läs recensionen ↗
             </a>
           </li>

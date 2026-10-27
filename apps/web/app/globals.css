@@ -203,6 +203,12 @@ main {
   font-size: 0.9rem;
 }
 
+.paywall-icon {
+  margin-right: 0.3em;
+  color: var(--muted);
+  vertical-align: -0.05em;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
