@@ -1,3 +1,4 @@
 import type { Source } from "../source";
+import { aftonbladet } from "./aftonbladet";
 
-export const sources: Source[] = [];
+export const sources: Source[] = [aftonbladet];
