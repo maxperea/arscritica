@@ -4,6 +4,7 @@ import { filmbladet } from "./filmbladet";
 import { filmparadiset } from "./filmparadiset";
 import { filmtopp } from "./filmtopp";
 import { gamereactor } from "./gamereactor";
+import { kulturbloggen } from "./kulturbloggen";
 import { moviezine } from "./moviezine";
 import { russin } from "./russin";
 import { sr } from "./sr";
@@ -16,6 +17,7 @@ export const sources: Source[] = [
   filmparadiset,
   filmtopp,
   gamereactor,
+  kulturbloggen,
   moviezine,
   russin,
   sr,
