@@ -22,8 +22,8 @@ export function reviewCountLabel(count: number): string {
 }
 
 export const weightedScoreExplanation =
-  "Betyget är snittet vägt mot hela sajtens snitt, så att filmer med få recensioner inte rankas för högt";
+  "Snittet vägt mot hela sajtens snitt, så att filmer med få recensioner inte rankas för högt";
 
-export function averageScoreLabel(score: number): string {
-  return `snitt ${score}`;
+export function weightedScoreLabel(rankScore: number): string {
+  return `viktat ${Math.round(rankScore)}`;
 }
