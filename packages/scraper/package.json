@@ -8,6 +8,7 @@
   },
   "scripts": {
     "scrape": "tsx src/cli.ts",
+    "backfill-genres": "tsx src/backfill-genres.ts",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit"
   },
