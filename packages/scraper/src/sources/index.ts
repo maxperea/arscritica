@@ -1,5 +1,6 @@
 import type { Source } from "../source";
 import { aftonbladet } from "./aftonbladet";
+import { dagensarena } from "./dagensarena";
 import { filmbladet } from "./filmbladet";
 import { filmparadiset } from "./filmparadiset";
 import { filmtopp } from "./filmtopp";
@@ -13,6 +14,7 @@ import { svt } from "./svt";
 
 export const sources: Source[] = [
   aftonbladet,
+  dagensarena,
   filmbladet,
   filmparadiset,
   filmtopp,
