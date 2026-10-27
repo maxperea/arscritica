@@ -3,143 +3,174 @@
 import { useEffect, useMemo, useState } from "react";
 import type { TopListMovie } from "@arscritica/db";
 import { MovieList } from "@/components/movie-list";
+import { reviewCountLabel } from "@/lib/format";
+import {
+  allPeriod,
+  genres,
+  minReviewsFor,
+  movieGenres,
+  periodLabel,
+  periodMovies,
+  periods,
+  recentDays,
+  recentPeriod,
+} from "@/lib/top-list";
 
-const maxResults = 100;
-const minReviewOptions = [1, 2, 3, 5];
-const monthFormat = new Intl.DateTimeFormat("sv-SE", {
-  month: "long",
-  year: "numeric",
-  timeZone: "UTC",
-});
+const pageSize = 50;
 
-interface Filters {
-  year: string;
-  month: string;
+interface Selection {
+  now: number;
+  period: string;
   genre: string;
-  minReviews: string;
 }
 
-const defaultFilters: Filters = { year: "", month: "", genre: "", minReviews: "2" };
-const queryKeys: Record<keyof Filters, string> = {
-  year: "ar",
-  month: "manad",
-  genre: "genre",
-  minReviews: "minst",
-};
-
 export function TopLists({ movies }: { movies: TopListMovie[] }) {
-  const [filters, setFilters] = useState(defaultFilters);
+  const [selection, setSelection] = useState<Selection | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  const periodOptions = useMemo(() => periods(movies), [movies]);
+  const knownGenres = useMemo(() => genres(movies), [movies]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setFilters((current) => {
-      const next = { ...current };
-      for (const [field, key] of Object.entries(queryKeys)) {
-        const value = params.get(key);
-        if (value !== null) next[field as keyof Filters] = value;
-      }
-      return next;
+    const period = params.get("period") ?? "";
+    const genre = params.get("genre") ?? "";
+    setSelection({
+      now: Date.now(),
+      period: periodOptions.includes(period) ? period : recentPeriod,
+      genre: knownGenres.some((option) => option.slug === genre) ? genre : "",
     });
-  }, []);
+  }, [periodOptions, knownGenres]);
 
-  const options = useMemo(
-    () => ({
-      years: unique(movies.map((movie) => movie.year?.toString() ?? ""))
-        .sort()
-        .reverse(),
-      months: unique(movies.map((movie) => reviewMonth(movie)))
-        .sort()
-        .reverse(),
-      genres: unique(movies.flatMap((movie) => movie.genres)).sort((a, b) =>
-        a.localeCompare(b, "sv"),
-      ),
-    }),
-    [movies],
-  );
+  const view = useMemo(() => {
+    if (!selection) return null;
+    const genreOptions = genres(periodMovies(movies, selection.period, selection.now));
+    const genreName = knownGenres.find((option) => option.slug === selection.genre)?.name;
+    const results = filterByGenre(periodMovies(movies, selection.period, selection.now), genreName);
+    const alternative = periodOptions.find(
+      (period) =>
+        period !== selection.period &&
+        filterByGenre(periodMovies(movies, period, selection.now), genreName).length > 0,
+    );
+    return { genreOptions, genreName, results, alternative };
+  }, [movies, selection, periodOptions, knownGenres]);
 
-  const results = useMemo(
-    () =>
-      movies
-        .filter(
-          (movie) =>
-            movie.reviewCount >= Number(filters.minReviews) &&
-            (!filters.year || movie.year?.toString() === filters.year) &&
-            (!filters.month || reviewMonth(movie) === filters.month) &&
-            (!filters.genre || movie.genres.includes(filters.genre)),
-        )
-        .slice(0, maxResults),
-    [movies, filters],
-  );
+  if (!selection || !view) return null;
 
-  function update(field: keyof Filters, value: string) {
-    const next = { ...filters, [field]: value };
-    setFilters(next);
+  function select(period: string, genre: string) {
+    if (!selection) return;
+    setSelection({ ...selection, period, genre });
+    setShowAll(false);
     const params = new URLSearchParams();
-    for (const [key, name] of Object.entries(queryKeys)) {
-      const current = next[key as keyof Filters];
-      if (current !== defaultFilters[key as keyof Filters]) params.set(name, current);
-    }
+    if (period !== recentPeriod) params.set("period", period);
+    if (genre) params.set("genre", genre);
     const query = params.toString();
     window.history.replaceState(null, "", query ? `?${query}` : window.location.pathname);
   }
 
+  function selectPeriod(period: string) {
+    if (!selection) return;
+    const keepGenre = genres(periodMovies(movies, period, selection.now)).some(
+      (option) => option.slug === selection.genre,
+    );
+    select(period, keepGenre ? selection.genre : "");
+  }
+
+  const { period, genre } = selection;
+  const { genreOptions, genreName, results, alternative } = view;
+  const threshold = minReviewsFor(period);
+  const visible = showAll ? results : results.slice(0, pageSize);
+
   return (
     <>
-      <div className="filters">
-        <label>
-          Utgivningsår
-          <select value={filters.year} onChange={(event) => update("year", event.target.value)}>
-            <option value="">Alla år</option>
-            {options.years.map((year) => (
-              <option key={year}>{year}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Recenserad
-          <select value={filters.month} onChange={(event) => update("month", event.target.value)}>
-            <option value="">Alla månader</option>
-            {options.months.map((month) => (
-              <option key={month} value={month}>
-                {monthFormat.format(new Date(`${month}-01T00:00:00Z`))}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Genre
-          <select value={filters.genre} onChange={(event) => update("genre", event.target.value)}>
-            <option value="">Alla genrer</option>
-            {options.genres.map((genre) => (
-              <option key={genre}>{genre}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Minst antal recensioner
-          <select
-            value={filters.minReviews}
-            onChange={(event) => update("minReviews", event.target.value)}
+      <div className="segmented" role="group" aria-label="Period">
+        {periodOptions.map((option) => (
+          <button
+            key={option}
+            type="button"
+            aria-pressed={option === period}
+            onClick={() => selectPeriod(option)}
           >
-            {minReviewOptions.map((count) => (
-              <option key={count}>{count}</option>
-            ))}
-          </select>
-        </label>
+            {periodLabel(option)}
+          </button>
+        ))}
       </div>
+      {genreOptions.length > 0 && (
+        <div className="chips" role="group" aria-label="Genre">
+          <button
+            type="button"
+            className="chip"
+            aria-pressed={!genre}
+            onClick={() => select(period, "")}
+          >
+            Alla genrer
+          </button>
+          {genreOptions.map((option) => (
+            <button
+              key={option.slug}
+              type="button"
+              className="chip"
+              aria-pressed={option.slug === genre}
+              onClick={() => select(period, option.slug)}
+            >
+              {option.name}
+            </button>
+          ))}
+        </div>
+      )}
       {results.length ? (
-        <MovieList movies={results} />
+        <>
+          <p className="muted caption">
+            {[
+              periodCaption(period),
+              `minst ${reviewCountLabel(threshold)}`,
+              results.length === 1 ? "1 film" : `${results.length} filmer`,
+            ]
+              .filter(Boolean)
+              .join(" · ")
+              .replace(/^./, (letter) => letter.toUpperCase())}
+          </p>
+          <MovieList movies={visible} ranked />
+          {visible.length < results.length && (
+            <button type="button" className="chip show-more" onClick={() => setShowAll(true)}>
+              Visa fler
+            </button>
+          )}
+        </>
       ) : (
-        <p className="muted">Inga filmer matchar filtren.</p>
+        <div className="empty-state">
+          <p>
+            Inga filmer{genreName ? ` i genren ${genreName}` : ""} med minst{" "}
+            {reviewCountLabel(threshold)}
+            {emptyPeriodPhrase(period)}.
+          </p>
+          {genre && (
+            <button type="button" className="chip" onClick={() => select(period, "")}>
+              Visa alla genrer
+            </button>
+          )}
+          {alternative && (
+            <button type="button" className="chip" onClick={() => select(alternative, genre)}>
+              Visa {alternative === allPeriod ? "alla perioder" : periodLabel(alternative)}
+            </button>
+          )}
+        </div>
       )}
     </>
   );
 }
 
-function reviewMonth(movie: TopListMovie): string {
-  return movie.firstReviewedAt.slice(0, 7);
+function filterByGenre(movies: TopListMovie[], genreName: string | undefined): TopListMovie[] {
+  return genreName ? movies.filter((movie) => movieGenres(movie).includes(genreName)) : movies;
 }
 
-function unique(values: string[]): string[] {
-  return [...new Set(values)].filter(Boolean);
+function periodCaption(period: string): string {
+  if (period === recentPeriod) return `premiär senaste ${recentDays} dagarna`;
+  if (period === allPeriod) return "";
+  return `premiär ${period}`;
+}
+
+function emptyPeriodPhrase(period: string): string {
+  if (period === recentPeriod) return ` de senaste ${recentDays} dagarna`;
+  if (period === allPeriod) return "";
+  return ` med premiär ${period}`;
 }
