@@ -20,3 +20,10 @@ export function posterUrl(posterPath: string, size: "w92" | "w342"): string {
 export function reviewCountLabel(count: number): string {
   return count === 1 ? "1 recension" : `${count} recensioner`;
 }
+
+export const weightedScoreExplanation =
+  "Snittet vägt mot hela sajtens snitt, så att filmer med få recensioner inte rankas för högt";
+
+export function weightedScoreLabel(rankScore: number): string {
+  return `viktat ${Math.round(rankScore)}`;
+}

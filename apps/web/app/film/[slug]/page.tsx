@@ -6,7 +6,13 @@ import { Poster } from "@/components/poster";
 import { PaywallIcon } from "@/components/paywall-icon";
 import { ScoreBadge } from "@/components/score-badge";
 import { getDb } from "@/lib/db";
-import { formatDate, formatRawScore, reviewCountLabel } from "@/lib/format";
+import {
+  formatDate,
+  formatRawScore,
+  reviewCountLabel,
+  weightedScoreExplanation,
+  weightedScoreLabel,
+} from "@/lib/format";
 import { slugParams } from "@/lib/static-params";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -40,7 +46,10 @@ export default async function MoviePage({ params }: Props) {
           {showOriginalTitle ? <p className="muted">Originaltitel: {movie.originalTitle}</p> : null}
           <div className="aggregate">
             <ScoreBadge score={movie.score} large />
-            <span className="muted">Snitt av {reviewCountLabel(movie.reviewCount)}</span>
+            <span className="muted">
+              Snitt av {reviewCountLabel(movie.reviewCount)} ·{" "}
+              <span title={weightedScoreExplanation}>{weightedScoreLabel(movie.rankScore)}</span>
+            </span>
           </div>
         </div>
       </header>
