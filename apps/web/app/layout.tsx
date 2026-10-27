@@ -18,6 +18,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               Ars Critica
             </Link>
             <nav>
+              <Link href="/topplistor/">Topplistor</Link>
               <Link href="/publikationer/">Publikationer</Link>
               <Link href="/sok/">Sök</Link>
             </nav>
