@@ -1,0 +1,32 @@
+{
+  "name": "arscritica",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.11.0",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @arscritica/web dev",
+    "build": "pnpm --filter @arscritica/web build",
+    "scrape": "pnpm --filter @arscritica/scraper scrape",
+    "seed": "pnpm --filter @arscritica/db seed",
+    "db:init": "pnpm --filter @arscritica/db migrate",
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.25.0",
+    "@next/eslint-plugin-next": "^15.3.0",
+    "@types/node": "^22.15.0",
+    "eslint": "^9.25.0",
+    "eslint-config-prettier": "^10.1.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "prettier": "^3.5.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.30.0"
+  }
+}
