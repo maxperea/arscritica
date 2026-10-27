@@ -27,18 +27,20 @@ Other commands:
 
 ```sh
 pnpm scrape [--source <slug>]... [--since 2026-01-01] [--limit 20] [--db path]
+pnpm backfill-genres [--db path]   # fetch TMDB genres for matched movies that lack them
 pnpm build     # static export to apps/web/out
 pnpm test
 pnpm lint && pnpm format:check && pnpm typecheck
 ```
 
 `TMDB_API_KEY` (v3 key or v4 read token) enables movie matching via TMDB (id, original title,
-year, poster). Without it, movies are matched on normalized title and year.
+year, poster, genres in Swedish). Without it, movies are matched on normalized title and year.
 
 ## Data model
 
 - `publications(id, slug, name, url)`
 - `movies(id, tmdb_id?, title, original_title?, year?, poster_path?, slug, title_key, original_title_key?)`
+- `movie_genres(movie_id, name)`: TMDB genre names, only for TMDB-matched movies
 - `reviews(id, movie_id, publication_id, url UNIQUE, source_title, source_year?, raw_score, scale_max, normalized_score, critic?, published_at?, scraped_at)`
 
 Each review keeps its raw score and scale, plus a normalized 0–100 score

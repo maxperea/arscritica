@@ -33,6 +33,12 @@ jobs:
         run: pnpm scrape
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      - name: Backfill genres
+        if: github.event_name != 'push'
+        continue-on-error: true
+        run: pnpm backfill-genres
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
       - name: Persist database
         if: github.event_name != 'push'
         run: bash scripts/data-branch.sh persist
