@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { MovieSummary } from "@arscritica/db";
-import { reviewCountLabel, weightedScoreExplanation, weightedScoreLabel } from "@/lib/format";
+import { reviewCountLabel } from "@/lib/format";
 import { ranks } from "@/lib/top-list";
 import { Poster } from "./poster";
 import { ScoreBadge } from "./score-badge";
@@ -26,8 +26,6 @@ export function MovieList({
             </Link>
             <div className="muted">
               {[movie.year, reviewCountLabel(movie.reviewCount)].filter(Boolean).join(" · ")}
-              {" · "}
-              <span title={weightedScoreExplanation}>{weightedScoreLabel(movie.rankScore)}</span>
             </div>
           </div>
         </li>

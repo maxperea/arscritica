@@ -59,10 +59,7 @@ export function genreSlug(name: string): string {
 export function ranks(movies: { rankScore: number }[]): number[] {
   let rank = 0;
   return movies.map((movie, index) => {
-    const previous = movies[index - 1];
-    if (!previous || Math.round(movie.rankScore) !== Math.round(previous.rankScore)) {
-      rank = index + 1;
-    }
+    if (index === 0 || movie.rankScore !== movies[index - 1]?.rankScore) rank = index + 1;
     return rank;
   });
 }
