@@ -10,8 +10,8 @@ import {
   formatDate,
   formatRawScore,
   reviewCountLabel,
+  averageScoreLabel,
   weightedScoreExplanation,
-  weightedScoreLabel,
 } from "@/lib/format";
 import { slugParams } from "@/lib/static-params";
 
@@ -45,10 +45,10 @@ export default async function MoviePage({ params }: Props) {
           </h1>
           {showOriginalTitle ? <p className="muted">Originaltitel: {movie.originalTitle}</p> : null}
           <div className="aggregate">
-            <ScoreBadge score={movie.score} large />
+            <ScoreBadge score={Math.round(movie.rankScore)} large />
             <span className="muted">
-              Snitt av {reviewCountLabel(movie.reviewCount)} ·{" "}
-              <span title={weightedScoreExplanation}>{weightedScoreLabel(movie.rankScore)}</span>
+              {reviewCountLabel(movie.reviewCount)} ·{" "}
+              <span title={weightedScoreExplanation}>{averageScoreLabel(movie.score)}</span>
             </span>
           </div>
         </div>

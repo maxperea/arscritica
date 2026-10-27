@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { MovieSummary } from "@arscritica/db";
-import { reviewCountLabel, weightedScoreExplanation, weightedScoreLabel } from "@/lib/format";
+import { reviewCountLabel } from "@/lib/format";
 import { ranks } from "@/lib/top-list";
 import { Poster } from "./poster";
 import { ScoreBadge } from "./score-badge";
@@ -18,7 +18,7 @@ export function MovieList({
       {movies.map((movie, index) => (
         <li key={movie.slug} className="list-item">
           {ranked && <span className="rank">{movieRanks[index]}</span>}
-          <ScoreBadge score={movie.score} />
+          <ScoreBadge score={Math.round(movie.rankScore)} />
           <Poster path={movie.posterPath} title={movie.title} />
           <div className="item-body">
             <Link href={`/film/${movie.slug}/`} className="item-title">
@@ -26,8 +26,6 @@ export function MovieList({
             </Link>
             <div className="muted">
               {[movie.year, reviewCountLabel(movie.reviewCount)].filter(Boolean).join(" · ")}
-              {" · "}
-              <span title={weightedScoreExplanation}>{weightedScoreLabel(movie.rankScore)}</span>
             </div>
           </div>
         </li>
