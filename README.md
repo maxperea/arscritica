@@ -1,4 +1,4 @@
-# Ars Critica
+# Vox Critica
 
 Filmrecensioner från svenska publikationer, samlade på ett ställe. A minimal, ad-free review
 aggregator: scrapers collect reviews into SQLite, and a static Next.js site is built from it and

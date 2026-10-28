@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "Ars Critica", template: "%s – Ars Critica" },
+  title: { default: "Vox Critica", template: "%s – Vox Critica" },
   description: "Filmrecensioner från svenska publikationer, samlade på ett ställe.",
 };
 
@@ -15,7 +15,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <header className="site-header">
           <div className="container header-inner">
             <Link href="/" className="logo">
-              Ars Critica
+              Vox Critica
             </Link>
             <nav>
               <Link href="/topplistor/">Topplistor</Link>
