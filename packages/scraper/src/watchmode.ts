@@ -33,10 +33,12 @@ export class WatchmodeClient {
   }
 
   async swedishOffers(titleId: number | string): Promise<WatchOffer[]> {
-    const response = await fetch(
-      `https://api.watchmode.com/v1/title/${titleId}/sources/?regions=SE`,
-      { headers: { "X-API-Key": this.apiKey, "User-Agent": USER_AGENT } },
-    );
+    let response = await this.fetchSources(titleId);
+    for (let attempt = 1; response.status === 429 && attempt <= 5; attempt++) {
+      const retryAfter = Number(response.headers.get("retry-after")) || 2 * attempt;
+      await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000));
+      response = await this.fetchSources(titleId);
+    }
     const quota = Number(response.headers.get("x-account-quota"));
     const used = Number(response.headers.get("x-account-quota-used"));
     if (quota && !Number.isNaN(used)) this.creditsLeft = quota - used;
@@ -46,6 +48,12 @@ export class WatchmodeClient {
     }
     if (!response.ok) throw new Error(`Watchmode responded ${response.status}`);
     return cheapestOffers((await response.json()) as WatchmodeSource[]);
+  }
+
+  private fetchSources(titleId: number | string): Promise<Response> {
+    return fetch(`https://api.watchmode.com/v1/title/${titleId}/sources/?regions=SE`, {
+      headers: { "X-API-Key": this.apiKey, "User-Agent": USER_AGENT },
+    });
   }
 
   async watchmodeIds(tmdbIds: Set<number>): Promise<Map<number, number>> {
