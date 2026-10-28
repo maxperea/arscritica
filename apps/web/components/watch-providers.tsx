@@ -63,26 +63,6 @@ export function WatchProviders({
           </div>
         );
       })}
-      <p className="watch-credit muted">
-        Källor:{" "}
-        <a
-          href="https://www.justwatch.com/se"
-          className="quiet-link"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          JustWatch
-        </a>
-        {", "}
-        <a
-          href="https://www.watchmode.com/"
-          className="quiet-link"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Watchmode
-        </a>
-      </p>
     </section>
   );
 }

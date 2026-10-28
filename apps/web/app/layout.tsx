@@ -27,7 +27,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <main className="container">{children}</main>
         <footer className="site-footer container">
           Betyg från svenska publikationer, omräknade till en skala 0–100. Filmdata från{" "}
-          <a href="https://www.themoviedb.org/">TMDB</a>.
+          <a href="https://www.themoviedb.org/">TMDB</a>. Streamingdata från{" "}
+          <a href="https://www.justwatch.com/se">JustWatch</a> och{" "}
+          <a href="https://www.watchmode.com/">Watchmode</a>.
         </footer>
       </body>
     </html>

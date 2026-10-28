@@ -260,11 +260,6 @@ main {
   font-size: 0.9rem;
 }
 
-.watch-credit {
-  margin: 0;
-  font-size: 0.8rem;
-}
-
 .aggregate {
   display: flex;
   align-items: center;
