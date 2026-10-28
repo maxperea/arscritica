@@ -53,4 +53,7 @@ export const migrations: string[] = [
   `
   ALTER TABLE movies ADD COLUMN imdb_id TEXT;
   `,
+  `
+  ALTER TABLE movies ADD COLUMN overview TEXT;
+  `,
 ];

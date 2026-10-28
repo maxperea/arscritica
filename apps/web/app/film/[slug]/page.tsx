@@ -42,6 +42,7 @@ export default async function MoviePage({ params }: Props) {
             <ScoreBadge score={movie.score} large />
             <span className="muted">Snitt av {reviewCountLabel(movie.reviewCount)}</span>
           </div>
+          {movie.overview ? <p className="overview">{movie.overview}</p> : null}
           {movie.imdbId ? (
             <p>
               <a

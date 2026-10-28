@@ -23,6 +23,18 @@ interface TmdbSearchResult {
   genre_ids?: number[];
 }
 
+interface TmdbDetailsResult {
+  genres?: TmdbGenre[];
+  imdb_id?: string | null;
+  overview?: string | null;
+}
+
+export interface TmdbMovieDetails {
+  genres: string[];
+  imdbId?: string;
+  overview?: string;
+}
+
 interface TmdbGenre {
   id: number;
   name: string;
@@ -70,14 +82,18 @@ export class TmdbClient implements MovieLookup {
     );
   }
 
-  async movieDetails(tmdbId: number): Promise<{ genres: string[]; imdbId?: string }> {
-    const movie = await this.get<{ genres?: TmdbGenre[]; imdb_id?: string | null }>(
-      `movie/${tmdbId}`,
-    );
+  async movieDetails(tmdbId: number): Promise<TmdbMovieDetails> {
+    const movie = await this.get<TmdbDetailsResult>(`movie/${tmdbId}`);
     return {
       genres: (movie.genres ?? []).map((genre) => genre.name),
       imdbId: movie.imdb_id || undefined,
+      overview: movie.overview?.trim() || undefined,
     };
+  }
+
+  async englishOverview(tmdbId: number): Promise<string | undefined> {
+    const movie = await this.get<TmdbDetailsResult>(`movie/${tmdbId}`, { language: "en-US" });
+    return movie.overview?.trim() || undefined;
   }
 
   private async search(query: string, year?: number): Promise<TmdbMovie[]> {

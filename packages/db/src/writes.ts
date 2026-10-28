@@ -102,12 +102,16 @@ export function setMovieImdbId(db: Database, movieId: number, imdbId: string | u
   db.prepare("UPDATE movies SET imdb_id = ? WHERE id = ?").run(imdbId ?? null, movieId);
 }
 
+export function setMovieOverview(db: Database, movieId: number, overview: string): void {
+  db.prepare("UPDATE movies SET overview = ? WHERE id = ?").run(overview, movieId);
+}
+
 export function tmdbMoviesMissingDetails(db: Database): { id: number; tmdbId: number }[] {
   return allRows(
     db.prepare(
       `SELECT id, tmdb_id AS tmdbId FROM movies m
        WHERE tmdb_id IS NOT NULL
-         AND (imdb_id IS NULL
+         AND (imdb_id IS NULL OR overview IS NULL
            OR NOT EXISTS (SELECT 1 FROM movie_genres g WHERE g.movie_id = m.id))`,
     ),
   );

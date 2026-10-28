@@ -192,6 +192,11 @@ main {
   margin-top: 0;
 }
 
+.overview {
+  max-width: 40rem;
+  line-height: 1.5;
+}
+
 .aggregate {
   display: flex;
   align-items: center;
