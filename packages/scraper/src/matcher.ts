@@ -37,7 +37,10 @@ async function lookupSafely(
   lookup?: MovieLookup,
 ): Promise<TmdbMovie | undefined> {
   try {
-    return await lookup?.findMovie(review.title, review.year);
+    const reviewedYear = review.publishedAt
+      ? new Date(review.publishedAt).getUTCFullYear()
+      : undefined;
+    return await lookup?.findMovie(review.title, review.year, reviewedYear);
   } catch (error) {
     console.warn(`TMDB lookup failed for "${review.title}": ${String(error)}`);
     return undefined;

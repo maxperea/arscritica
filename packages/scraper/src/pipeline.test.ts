@@ -3,9 +3,11 @@ import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { after, before, test } from "node:test";
 import { getMovie, openDatabase } from "@arscritica/db";
+import { normalizeTitle } from "@arscritica/db/text";
 import { PoliteFetcher } from "./fetcher";
 import { scrape } from "./runner";
 import { createExampleSource } from "./testing/example-source";
+import type { MovieLookup } from "./tmdb";
 
 const reviewPage = (title: string, year: number, score: number) =>
   `<h1>${title}</h1><span data-year="${year}"></span><span data-score="${score}"></span>` +
@@ -23,6 +25,15 @@ const pages: Record<string, string> = {
     '<a class="review" href="sommarnatt-recension">1</a><a class="review" href="vinterljus">2</a>',
   "/demo/sommarnatt-recension": reviewPage("SOMMARNATT!", 2026, 2),
   "/demo/vinterljus": reviewPage("Vinterljus", 2025, 5),
+};
+
+const tmdbIds = new Map<string, number>();
+const movieLookup: MovieLookup = {
+  async findMovie(title, year) {
+    const key = normalizeTitle(title);
+    if (!tmdbIds.has(key)) tmdbIds.set(key, tmdbIds.size + 1);
+    return { id: tmdbIds.get(key)!, title: key, originalTitle: key, year, genres: [] };
+  },
 };
 
 const requests: string[] = [];
@@ -54,6 +65,7 @@ test("scrapes sources politely, dedupes by URL and aggregates scores per movie",
       db,
       sources: [createExampleSource("exempel", baseUrl), createExampleSource("demo", baseUrl)],
       fetcher: new PoliteFetcher({ minDelayMs: 0 }),
+      movieLookup,
       log: () => {},
     });
 

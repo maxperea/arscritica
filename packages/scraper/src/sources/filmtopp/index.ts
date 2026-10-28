@@ -44,6 +44,21 @@ function yearAfterTitle(headline: string | undefined, title: string): number | u
   return year ? Number(year) : undefined;
 }
 
+const seriesPattern = /säsong|serie/iu;
+const quotedPattern = /[”"“]([^”"“]+)[”"“]/gu;
+
+export function parseFilmTitle(name: string): { title: string; year?: number } | null {
+  if (seriesPattern.test(name)) return null;
+  const headline = name.replace(/^recen[sc]ion:\s*/iu, "").trim();
+  const [, titleBeforeYear, year] = /^(.+?)\s*\((\d{4})\)(?:\s*[–-].*)?$/u.exec(headline) ?? [];
+  const title = titleBeforeYear ?? headline;
+  const quoted = [...title.matchAll(quotedPattern)].map((match) => match[1]!.trim());
+  return {
+    title: quoted.length === 1 ? quoted[0]! : title,
+    year: year ? Number(year) : undefined,
+  };
+}
+
 function findCriticReview(html: string): CriticReviewJson | undefined {
   const $ = load(html);
   for (const script of $('script[type="application/ld+json"]').toArray()) {
@@ -91,11 +106,12 @@ export const filmtopp: Source = {
     const rawScore = Number(review.reviewRating?.ratingValue);
     const scaleMax = Number(review.reviewRating?.bestRating ?? 5);
     if (!name || !Number.isFinite(rawScore) || !(scaleMax > 0)) return null;
-    const [, titleWithoutYear, year] = /^(.+?)\s*\((\d{4})\)$/.exec(name) ?? [];
-    const title = titleWithoutYear ?? name;
+    const parsed = parseFilmTitle(name);
+    if (!parsed) return null;
+    const { title, year } = parsed;
     return {
       title,
-      year: year ? Number(year) : yearAfterTitle(review.alternativeHeadline, title),
+      year: year ?? yearAfterTitle(review.alternativeHeadline, title),
       rawScore,
       scaleMax,
       critic: review.author?.name?.trim() || undefined,

@@ -11,7 +11,7 @@ export interface TmdbMovie {
 }
 
 export interface MovieLookup {
-  findMovie(title: string, year?: number): Promise<TmdbMovie | undefined>;
+  findMovie(title: string, year?: number, reviewedYear?: number): Promise<TmdbMovie | undefined>;
 }
 
 interface TmdbSearchResult {
@@ -41,7 +41,11 @@ export class TmdbClient implements MovieLookup {
     return apiKey ? new TmdbClient(apiKey) : undefined;
   }
 
-  async findMovie(title: string, year?: number): Promise<TmdbMovie | undefined> {
+  async findMovie(
+    title: string,
+    year?: number,
+    reviewedYear?: number,
+  ): Promise<TmdbMovie | undefined> {
     if (year) {
       const sameYear = await this.search(title, year);
       if (sameYear.length) return sameYear[0];
@@ -50,8 +54,19 @@ export class TmdbClient implements MovieLookup {
     }
     const key = normalizeTitle(title);
     const results = await this.search(title);
-    return results.find(
-      (movie) => normalizeTitle(movie.title) === key || normalizeTitle(movie.originalTitle) === key,
+    return (
+      results.find(
+        (movie) =>
+          normalizeTitle(movie.title) === key || normalizeTitle(movie.originalTitle) === key,
+      ) ??
+      results.find(
+        (movie) =>
+          reviewedYear !== undefined &&
+          movie.year !== undefined &&
+          movie.year <= reviewedYear &&
+          movie.year >= reviewedYear - 2 &&
+          [movie.title, movie.originalTitle].some((candidate) => titlesOverlap(title, candidate)),
+      )
     );
   }
 
@@ -94,6 +109,22 @@ export class TmdbClient implements MovieLookup {
     if (!response.ok) throw new Error(`TMDB request failed with HTTP ${response.status}`);
     return (await response.json()) as T;
   }
+}
+
+const romanNumerals: Record<string, string> = { ii: "2", iii: "3", iv: "4", v: "5" };
+
+function comparableTitle(title: string): string {
+  return normalizeTitle(title)
+    .split(" ")
+    .map((word) => romanNumerals[word] ?? word)
+    .join(" ");
+}
+
+function titlesOverlap(a: string, b: string): boolean {
+  const [shorter, longer] = [comparableTitle(a), comparableTitle(b)].sort(
+    (x, y) => x.length - y.length,
+  );
+  return longer === shorter || (shorter!.includes(" ") && longer!.startsWith(`${shorter} `));
 }
 
 function toTmdbMovie(result: TmdbSearchResult, genreNames: Map<number, string>): TmdbMovie {

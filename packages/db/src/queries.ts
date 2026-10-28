@@ -65,6 +65,7 @@ export interface BestMoviesOptions {
 }
 
 const reviewedAt = "COALESCE(r.published_at, r.scraped_at)";
+const matchedMovie = "m.tmdb_id IS NOT NULL";
 
 const movieSummaryColumns = `
   m.slug, m.title, m.original_title AS originalTitle, m.year, m.poster_path AS posterPath,
@@ -74,7 +75,7 @@ const movieSummaryColumns = `
 
 const movieSummaryFrom = `
   FROM movies m
-  JOIN reviews r ON r.movie_id = m.id`;
+  JOIN reviews r ON r.movie_id = m.id AND ${matchedMovie}`;
 
 const movieSummarySelect = `SELECT ${movieSummaryColumns} ${movieSummaryFrom}`;
 
@@ -82,7 +83,8 @@ const publicationSummarySelect = `
   SELECT p.slug, p.name, p.url, p.paywalled, COUNT(r.id) AS reviewCount,
     CAST(ROUND(AVG(r.normalized_score)) AS INTEGER) AS averageScore
   FROM publications p
-  LEFT JOIN reviews r ON r.publication_id = p.id`;
+  LEFT JOIN (reviews r JOIN movies m ON m.id = r.movie_id AND ${matchedMovie})
+    ON r.publication_id = p.id`;
 
 export function recentlyReviewedMovies(db: Database, limit = 12): MovieSummary[] {
   return allRows(
@@ -166,7 +168,7 @@ export function getPublication(db: Database, slug: string): PublicationDetail | 
        FROM reviews r
        JOIN movies m ON m.id = r.movie_id
        JOIN publications p ON p.id = r.publication_id
-       WHERE p.slug = ?
+       WHERE p.slug = ? AND ${matchedMovie}
        ORDER BY ${reviewedAt} DESC, m.title`,
     ),
     slug,
@@ -179,9 +181,9 @@ function withPaywalledFlag(publication: PublicationSummary): PublicationSummary 
 }
 
 export function movieSlugs(db: Database): string[] {
-  return allRows<{ slug: string }>(
-    db.prepare("SELECT DISTINCT m.slug FROM movies m JOIN reviews r ON r.movie_id = m.id"),
-  ).map((row) => row.slug);
+  return allRows<{ slug: string }>(db.prepare(`SELECT DISTINCT m.slug ${movieSummaryFrom}`)).map(
+    (row) => row.slug,
+  );
 }
 
 export function publicationSlugs(db: Database): string[] {
