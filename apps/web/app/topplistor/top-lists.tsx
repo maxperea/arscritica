@@ -5,6 +5,7 @@ import type { TopListMovie, WatchKind } from "@arscritica/db";
 import { MovieList } from "@/components/movie-list";
 import {
   allPeriod,
+  genreSlug,
   genres,
   movieGenres,
   periodLabel,
@@ -22,11 +23,15 @@ const watchOptions: { kind: WatchKind; label: string; phrase: string }[] = [
   { kind: "buy", label: "Köp", phrase: "att köpa" },
 ];
 
-interface Selection {
-  now: number;
+interface Filters {
   period: string;
   genre: string;
   watch: WatchKind | "";
+  service: string;
+}
+
+interface Selection extends Filters {
+  now: number;
 }
 
 export function TopLists({ movies }: { movies: TopListMovie[] }) {
@@ -34,48 +39,54 @@ export function TopLists({ movies }: { movies: TopListMovie[] }) {
   const [showAll, setShowAll] = useState(false);
   const periodOptions = useMemo(() => periods(movies), [movies]);
   const knownGenres = useMemo(() => genres(movies), [movies]);
+  const knownServices = useMemo(() => services(movies, ""), [movies]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const period = params.get("period") ?? "";
     const genre = params.get("genre") ?? "";
     const watch = watchOptions.find((option) => option.kind === params.get("watch"));
+    const service = knownServices.find((name) => genreSlug(name) === params.get("service"));
     setSelection({
       now: Date.now(),
       period: periodOptions.includes(period) ? period : recentPeriod,
       genre: knownGenres.some((option) => option.slug === genre) ? genre : "",
       watch: watch?.kind ?? "",
+      service: service ?? "",
     });
-  }, [periodOptions, knownGenres]);
+  }, [periodOptions, knownGenres, knownServices]);
 
   const view = useMemo(() => {
     if (!selection) return null;
-    const genreOptions = genres(periodMovies(movies, selection.period, selection.now));
+    const { period, watch, service, now } = selection;
+    const inPeriod = periodMovies(movies, period, now);
+    const genreOptions = genres(inPeriod);
     const genreName = knownGenres.find((option) => option.slug === selection.genre)?.name;
-    const results = filterMovies(
-      periodMovies(movies, selection.period, selection.now),
-      genreName,
-      selection.watch,
-    );
+    const inGenre = filterByGenre(inPeriod, genreName);
+    const serviceOptions = services(inGenre, watch);
+    if (service && !serviceOptions.includes(service)) serviceOptions.unshift(service);
+    const results = filterByWatch(inGenre, watch, service);
     const alternative = periodOptions.find(
-      (period) =>
-        period !== selection.period &&
-        filterMovies(periodMovies(movies, period, selection.now), genreName, selection.watch)
+      (option) =>
+        option !== period &&
+        filterByWatch(filterByGenre(periodMovies(movies, option, now), genreName), watch, service)
           .length > 0,
     );
-    return { genreOptions, genreName, results, alternative };
+    return { genreOptions, genreName, serviceOptions, results, alternative };
   }, [movies, selection, periodOptions, knownGenres]);
 
   if (!selection || !view) return null;
 
-  function select(period: string, genre: string, watch = selection?.watch ?? "") {
+  function select(changes: Partial<Filters>) {
     if (!selection) return;
-    setSelection({ ...selection, period, genre, watch });
+    const next = { ...selection, ...changes };
+    setSelection(next);
     setShowAll(false);
     const params = new URLSearchParams();
-    if (period !== recentPeriod) params.set("period", period);
-    if (genre) params.set("genre", genre);
-    if (watch) params.set("watch", watch);
+    if (next.period !== recentPeriod) params.set("period", next.period);
+    if (next.genre) params.set("genre", next.genre);
+    if (next.watch) params.set("watch", next.watch);
+    if (next.service) params.set("service", genreSlug(next.service));
     const query = params.toString();
     window.history.replaceState(null, "", query ? `?${query}` : window.location.pathname);
   }
@@ -85,12 +96,12 @@ export function TopLists({ movies }: { movies: TopListMovie[] }) {
     const keepGenre = genres(periodMovies(movies, period, selection.now)).some(
       (option) => option.slug === selection.genre,
     );
-    select(period, keepGenre ? selection.genre : "");
+    select({ period, genre: keepGenre ? selection.genre : "" });
   }
 
-  const { period, genre, watch } = selection;
+  const { period, genre, watch, service } = selection;
   const watchPhrase = watchOptions.find((option) => option.kind === watch)?.phrase;
-  const { genreOptions, genreName, results, alternative } = view;
+  const { genreOptions, genreName, serviceOptions, results, alternative } = view;
   const visible = showAll ? results : results.slice(0, pageSize);
 
   return (
@@ -112,7 +123,7 @@ export function TopLists({ movies }: { movies: TopListMovie[] }) {
           type="button"
           className="chip"
           aria-pressed={!watch}
-          onClick={() => select(period, genre, "")}
+          onClick={() => select({ watch: "" })}
         >
           Alla filmer
         </button>
@@ -122,11 +133,25 @@ export function TopLists({ movies }: { movies: TopListMovie[] }) {
             type="button"
             className="chip"
             aria-pressed={option.kind === watch}
-            onClick={() => select(period, genre, option.kind)}
+            onClick={() => select({ watch: option.kind })}
           >
             {option.label}
           </button>
         ))}
+        <select
+          className="chip service-select"
+          aria-label="Tjänst"
+          data-selected={Boolean(service)}
+          value={service}
+          onChange={(event) => select({ service: event.target.value })}
+        >
+          <option value="">Alla tjänster</option>
+          {serviceOptions.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
       </div>
       {genreOptions.length > 0 && (
         <div className="chips" role="group" aria-label="Genre">
@@ -134,7 +159,7 @@ export function TopLists({ movies }: { movies: TopListMovie[] }) {
             type="button"
             className="chip"
             aria-pressed={!genre}
-            onClick={() => select(period, "")}
+            onClick={() => select({ genre: "" })}
           >
             Alla genrer
           </button>
@@ -144,7 +169,7 @@ export function TopLists({ movies }: { movies: TopListMovie[] }) {
               type="button"
               className="chip"
               aria-pressed={option.slug === genre}
-              onClick={() => select(period, option.slug)}
+              onClick={() => select({ genre: option.slug })}
             >
               {option.name}
             </button>
@@ -171,20 +196,26 @@ export function TopLists({ movies }: { movies: TopListMovie[] }) {
           <p>
             Inga filmer{genreName ? ` i genren ${genreName}` : ""}
             {watchPhrase ? ` ${watchPhrase}` : ""}
+            {service ? ` på ${service}` : ""}
             {emptyPeriodPhrase(period)}.
           </p>
           {genre && (
-            <button type="button" className="chip" onClick={() => select(period, "")}>
+            <button type="button" className="chip" onClick={() => select({ genre: "" })}>
               Visa alla genrer
             </button>
           )}
           {watch && (
-            <button type="button" className="chip" onClick={() => select(period, genre, "")}>
+            <button type="button" className="chip" onClick={() => select({ watch: "" })}>
               Visa alla filmer
             </button>
           )}
+          {service && (
+            <button type="button" className="chip" onClick={() => select({ service: "" })}>
+              Visa alla tjänster
+            </button>
+          )}
           {alternative && (
-            <button type="button" className="chip" onClick={() => select(alternative, genre)}>
+            <button type="button" className="chip" onClick={() => select({ period: alternative })}>
               Visa {alternative === allPeriod ? "alla perioder" : periodLabel(alternative)}
             </button>
           )}
@@ -194,16 +225,36 @@ export function TopLists({ movies }: { movies: TopListMovie[] }) {
   );
 }
 
-function filterMovies(
+function filterByGenre(movies: TopListMovie[], genreName: string | undefined): TopListMovie[] {
+  return genreName ? movies.filter((movie) => movieGenres(movie).includes(genreName)) : movies;
+}
+
+function filterByWatch(
   movies: TopListMovie[],
-  genreName: string | undefined,
   watch: WatchKind | "",
+  service: string,
 ): TopListMovie[] {
-  return movies.filter(
-    (movie) =>
-      (!genreName || movieGenres(movie).includes(genreName)) &&
-      (!watch || movie.watchKinds.includes(watch)),
+  if (!watch && !service) return movies;
+  return movies.filter((movie) =>
+    movie.watchProviders.some(
+      (provider) => (!watch || provider.kind === watch) && (!service || provider.name === service),
+    ),
   );
+}
+
+function services(movies: TopListMovie[], watch: WatchKind | ""): string[] {
+  const counts = new Map<string, number>();
+  for (const movie of movies) {
+    const names = new Set(
+      movie.watchProviders
+        .filter((provider) => !watch || provider.kind === watch)
+        .map((provider) => provider.name),
+    );
+    for (const name of names) counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  return [...counts]
+    .sort(([a, aCount], [b, bCount]) => bCount - aCount || a.localeCompare(b, "sv"))
+    .map(([name]) => name);
 }
 
 function periodCaption(period: string): string {

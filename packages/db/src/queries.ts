@@ -13,10 +13,15 @@ export interface MovieSummary {
   latestReviewAt: string;
 }
 
+export interface TopListWatchProvider {
+  kind: WatchKind;
+  name: string;
+}
+
 export interface TopListMovie extends MovieSummary {
   firstReviewedAt: string;
   genres: string[];
-  watchKinds: WatchKind[];
+  watchProviders: TopListWatchProvider[];
 }
 
 export interface MovieReview {
@@ -272,14 +277,14 @@ export function searchIndex(db: Database): MovieSummary[] {
 
 export function topListMovies(db: Database): TopListMovie[] {
   return allRows<
-    Omit<TopListMovie, "genres" | "watchKinds"> & { genres: string; watchKinds: string }
+    Omit<TopListMovie, "genres" | "watchProviders"> & { genres: string; watchProviders: string }
   >(
     db.prepare(
       `SELECT ${movieSummaryColumns}, MIN(${reviewedAt}) AS firstReviewedAt,
          (SELECT json_group_array(name) FROM
            (SELECT name FROM movie_genres g WHERE g.movie_id = m.id ORDER BY name)) AS genres,
-         (SELECT json_group_array(DISTINCT kind) FROM movie_watch_providers w
-           WHERE w.movie_id = m.id) AS watchKinds
+         (SELECT json_group_array(json_object('kind', kind, 'name', name))
+           FROM movie_watch_providers w WHERE w.movie_id = m.id) AS watchProviders
        ${movieSummaryFrom}
        GROUP BY m.id
        ORDER BY score DESC, reviewCount DESC, m.title`,
@@ -287,6 +292,6 @@ export function topListMovies(db: Database): TopListMovie[] {
   ).map((movie) => ({
     ...movie,
     genres: JSON.parse(movie.genres) as string[],
-    watchKinds: JSON.parse(movie.watchKinds) as WatchKind[],
+    watchProviders: JSON.parse(movie.watchProviders) as TopListWatchProvider[],
   }));
 }
