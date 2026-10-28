@@ -16,6 +16,7 @@ export interface MovieSummary {
 export interface TopListMovie extends MovieSummary {
   firstReviewedAt: string;
   genres: string[];
+  watchKinds: WatchKind[];
 }
 
 export interface MovieReview {
@@ -270,14 +271,22 @@ export function searchIndex(db: Database): MovieSummary[] {
 }
 
 export function topListMovies(db: Database): TopListMovie[] {
-  return allRows<Omit<TopListMovie, "genres"> & { genres: string }>(
+  return allRows<
+    Omit<TopListMovie, "genres" | "watchKinds"> & { genres: string; watchKinds: string }
+  >(
     db.prepare(
       `SELECT ${movieSummaryColumns}, MIN(${reviewedAt}) AS firstReviewedAt,
          (SELECT json_group_array(name) FROM
-           (SELECT name FROM movie_genres g WHERE g.movie_id = m.id ORDER BY name)) AS genres
+           (SELECT name FROM movie_genres g WHERE g.movie_id = m.id ORDER BY name)) AS genres,
+         (SELECT json_group_array(DISTINCT kind) FROM movie_watch_providers w
+           WHERE w.movie_id = m.id) AS watchKinds
        ${movieSummaryFrom}
        GROUP BY m.id
        ORDER BY score DESC, reviewCount DESC, m.title`,
     ),
-  ).map((movie) => ({ ...movie, genres: JSON.parse(movie.genres) as string[] }));
+  ).map((movie) => ({
+    ...movie,
+    genres: JSON.parse(movie.genres) as string[],
+    watchKinds: JSON.parse(movie.watchKinds) as WatchKind[],
+  }));
 }
