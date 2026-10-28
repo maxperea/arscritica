@@ -236,6 +236,19 @@ main {
   gap: 0.4rem;
 }
 
+.watch-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.watch-price {
+  font-size: 0.7rem;
+}
+
 .watch-logo {
   display: block;
   width: 2.25rem;

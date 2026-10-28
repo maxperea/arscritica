@@ -71,4 +71,17 @@ export const migrations: string[] = [
     PRIMARY KEY (movie_id, kind, provider_id)
   );
   `,
+  `
+  ALTER TABLE movies ADD COLUMN watchmode_id INTEGER;
+  ALTER TABLE movies ADD COLUMN watchmode_checked_at TEXT;
+  ALTER TABLE movies ADD COLUMN watchmode_signature TEXT;
+  CREATE TABLE movie_watch_offers (
+    movie_id INTEGER NOT NULL REFERENCES movies (id),
+    kind TEXT NOT NULL,
+    name TEXT NOT NULL,
+    url TEXT NOT NULL,
+    price REAL,
+    PRIMARY KEY (movie_id, kind, name)
+  );
+  `,
 ];

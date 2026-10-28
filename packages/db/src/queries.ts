@@ -34,6 +34,8 @@ export interface MovieWatchProvider {
   kind: WatchKind;
   name: string;
   logoPath: string | null;
+  url: string | null;
+  price: number | null;
 }
 
 export interface MovieDetail extends MovieSummary {
@@ -130,6 +132,24 @@ export function bestMoviesRightNow(
   );
 }
 
+const watchmodeNames: Record<string, string> = {
+  "Amazon Video": "Amazon",
+  "Amazon Prime Video": "Prime Video",
+  "Apple TV Store": "AppleTV",
+  "Apple TV": "AppleTV+",
+  "Apple TV Amazon Channel": "AppleTV+ Amazon Channel",
+  "Disney Plus": "Disney+",
+  "SVT Play": "SVT",
+  Cineasterna: "Cineasterna (Library Card)",
+  "HBO Max Amazon Channel": "HBO Max (Via Amazon Prime)",
+  "MGM Amazon Channel": "MGM+ (Via Amazon Prime)",
+  Crunchyroll: "Crunchyroll Premium",
+};
+
+function watchOfferName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9+]/g, "");
+}
+
 export function getMovie(db: Database, slug: string): MovieDetail | undefined {
   const movie = getRow<MovieSummary>(
     db.prepare(`${movieSummarySelect} WHERE m.slug = ? GROUP BY m.id`),
@@ -148,13 +168,32 @@ export function getMovie(db: Database, slug: string): MovieDetail | undefined {
     slug,
   );
   if (!details) return undefined;
-  const watchProviders = allRows<MovieWatchProvider>(
+  const offers = allRows<{ kind: WatchKind; name: string; url: string; price: number | null }>(
+    db.prepare(
+      `SELECT o.kind, o.name, o.url, o.price FROM movie_watch_offers o
+       JOIN movies m ON m.id = o.movie_id
+       WHERE o.movie_id = ? AND m.watchmode_checked_at >= datetime('now', '-30 days')`,
+    ),
+    details.id,
+  );
+  const pricesByProvider = new Map(
+    offers.map((offer) => [`${offer.kind}:${watchOfferName(offer.name)}`, offer.price]),
+  );
+  const urlsByService = new Map(offers.map((offer) => [watchOfferName(offer.name), offer.url]));
+  const watchProviders = allRows<Omit<MovieWatchProvider, "url" | "price">>(
     db.prepare(
       `SELECT kind, name, logo_path AS logoPath FROM movie_watch_providers
        WHERE movie_id = ? ORDER BY display_priority, name`,
     ),
     details.id,
-  );
+  ).map((provider) => {
+    const name = watchOfferName(watchmodeNames[provider.name] ?? provider.name);
+    return {
+      ...provider,
+      url: urlsByService.get(name) ?? null,
+      price: pricesByProvider.get(`${provider.kind}:${name}`) ?? null,
+    };
+  });
   const reviews = allRows<MovieReview>(
     db.prepare(
       `SELECT r.url, r.raw_score AS rawScore, r.scale_max AS scaleMax,

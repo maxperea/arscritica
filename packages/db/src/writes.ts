@@ -29,6 +29,20 @@ export interface WatchProvider {
   displayPriority: number;
 }
 
+export interface WatchOffer {
+  kind: WatchKind;
+  name: string;
+  url: string;
+  price?: number;
+}
+
+export interface WatchmodeCandidate {
+  id: number;
+  tmdbId: number;
+  watchmodeId: number | null;
+  signature: string;
+}
+
 export interface MovieCandidate {
   id: number;
   tmdbId: number | null;
@@ -156,6 +170,61 @@ export function tmdbMoviesDueForWatchProviders(db: Database): { id: number; tmdb
              CASE WHEN year >= CAST(strftime('%Y', 'now') AS INTEGER) - 1
                THEN '-20 hours' ELSE '-7 days' END))
        ORDER BY watch_providers_checked_at IS NOT NULL, watch_providers_checked_at`,
+    ),
+  );
+}
+
+export function setMovieWatchmodeId(db: Database, movieId: number, watchmodeId: number): void {
+  db.prepare("UPDATE movies SET watchmode_id = ? WHERE id = ?").run(watchmodeId, movieId);
+}
+
+export function setMovieWatchOffers(
+  db: Database,
+  movieId: number,
+  offers: WatchOffer[],
+  signature: string,
+): void {
+  db.prepare("DELETE FROM movie_watch_offers WHERE movie_id = ?").run(movieId);
+  const insert = db.prepare(
+    "INSERT OR IGNORE INTO movie_watch_offers (movie_id, kind, name, url, price) VALUES (?, ?, ?, ?, ?)",
+  );
+  for (const offer of offers) {
+    insert.run(movieId, offer.kind, offer.name, offer.url, offer.price ?? null);
+  }
+  db.prepare(
+    "UPDATE movies SET watchmode_checked_at = datetime('now'), watchmode_signature = ? WHERE id = ?",
+  ).run(signature, movieId);
+}
+
+export function deleteExpiredWatchOffers(db: Database): void {
+  db.prepare(
+    `DELETE FROM movie_watch_offers WHERE movie_id IN (
+       SELECT id FROM movies WHERE watchmode_checked_at < datetime('now', '-30 days'))`,
+  ).run();
+}
+
+export function moviesDueForWatchmode(db: Database): WatchmodeCandidate[] {
+  return allRows(
+    db.prepare(
+      `WITH current AS (
+         SELECT movie_id, group_concat(kind || ':' || provider_id, ',') AS signature
+         FROM (SELECT movie_id, kind, provider_id FROM movie_watch_providers
+               ORDER BY movie_id, kind, provider_id)
+         GROUP BY movie_id
+       ), reviewed AS (
+         SELECT movie_id, MAX(COALESCE(published_at, scraped_at)) AS latest
+         FROM reviews GROUP BY movie_id
+       )
+       SELECT m.id, m.tmdb_id AS tmdbId, m.watchmode_id AS watchmodeId, c.signature
+       FROM movies m
+       JOIN current c ON c.movie_id = m.id
+       LEFT JOIN reviewed r ON r.movie_id = m.id
+       WHERE m.tmdb_id IS NOT NULL
+         AND (m.watchmode_checked_at IS NULL
+           OR m.watchmode_checked_at < datetime('now', '-25 days')
+           OR (m.watchmode_signature IS NOT c.signature
+             AND m.watchmode_checked_at < datetime('now', '-1 day')))
+       ORDER BY m.watchmode_checked_at IS NOT NULL, r.latest DESC`,
     ),
   );
 }

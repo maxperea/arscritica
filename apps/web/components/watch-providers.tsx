@@ -7,6 +7,12 @@ const groups = [
   { kind: "buy", label: "Köp" },
 ] as const;
 
+const priceFormat = new Intl.NumberFormat("sv-SE", { maximumFractionDigits: 2 });
+
+function formatPrice(price: number): string {
+  return `${priceFormat.format(price)} kr`;
+}
+
 export function WatchProviders({
   providers,
   tmdbId,
@@ -32,7 +38,8 @@ export function WatchProviders({
               {matching.map((provider) => (
                 <a
                   key={provider.name}
-                  href={link}
+                  className="watch-option"
+                  href={provider.url ?? link}
                   target="_blank"
                   rel="noopener noreferrer"
                   title={provider.name}
@@ -47,6 +54,9 @@ export function WatchProviders({
                   ) : (
                     <span className="watch-name">{provider.name}</span>
                   )}
+                  {provider.price !== null && (
+                    <span className="watch-price muted">{formatPrice(provider.price)}</span>
+                  )}
                 </a>
               ))}
             </div>
@@ -54,7 +64,7 @@ export function WatchProviders({
         );
       })}
       <p className="watch-credit muted">
-        Källa:{" "}
+        Källor:{" "}
         <a
           href="https://www.justwatch.com/se"
           className="quiet-link"
@@ -62,6 +72,15 @@ export function WatchProviders({
           rel="noopener noreferrer"
         >
           JustWatch
+        </a>
+        {", "}
+        <a
+          href="https://www.watchmode.com/"
+          className="quiet-link"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Watchmode
         </a>
       </p>
     </section>

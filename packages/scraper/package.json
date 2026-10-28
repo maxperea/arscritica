@@ -10,6 +10,7 @@
     "scrape": "tsx src/cli.ts",
     "backfill-details": "tsx src/backfill-details.ts",
     "refresh-watch-providers": "tsx src/refresh-watch-providers.ts",
+    "refresh-watch-offers": "tsx src/refresh-watch-offers.ts",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit"
   },
