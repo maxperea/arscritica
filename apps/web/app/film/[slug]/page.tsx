@@ -46,7 +46,11 @@ export default async function MoviePage({ params }: Props) {
         </div>
         <div className="movie-about">
           {movie.overview ? <p className="overview">{movie.overview}</p> : null}
-          <WatchProviders providers={movie.watchProviders} tmdbId={movie.tmdbId} />
+          <WatchProviders
+            providers={movie.watchProviders}
+            title={movie.title}
+            tmdbId={movie.tmdbId}
+          />
           {movie.imdbId ? (
             <p>
               <a

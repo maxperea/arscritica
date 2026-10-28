@@ -9,15 +9,35 @@ const groups = [
 
 const priceFormat = new Intl.NumberFormat("sv-SE", { maximumFractionDigits: 2 });
 
+const primeVideoSearch = "https://www.primevideo.com/-/sv/search/ref=atv_sr_sug?phrase=";
+
+const searchUrls: Record<string, string> = {
+  "SF Anytime": "https://www.sfanytime.com/sv/search?query=",
+  Viaplay: "https://viaplay.se/search?query=",
+  "Amazon Video": primeVideoSearch,
+  "Amazon Prime Video": primeVideoSearch,
+  "Tele2 Play": "https://www.tele2play.se/search?q=",
+  "SVT Play": "https://www.svtplay.se/sok?q=",
+  Netflix: "https://www.netflix.com/search?q=",
+};
+
+function providerUrl(provider: MovieWatchProvider, title: string, fallback: string): string {
+  if (provider.url) return provider.url;
+  const search = searchUrls[provider.name];
+  return search ? search + encodeURIComponent(title) : fallback;
+}
+
 function formatPrice(price: number): string {
   return `${priceFormat.format(price)} kr`;
 }
 
 export function WatchProviders({
   providers,
+  title,
   tmdbId,
 }: {
   providers: MovieWatchProvider[];
+  title: string;
   tmdbId: number;
 }) {
   if (!providers.length) return null;
@@ -39,7 +59,7 @@ export function WatchProviders({
                 <a
                   key={provider.name}
                   className="watch-option"
-                  href={provider.url ?? link}
+                  href={providerUrl(provider, title, link)}
                   target="_blank"
                   rel="noopener noreferrer"
                   title={provider.name}
