@@ -214,46 +214,22 @@ main {
 }
 
 .watch {
-  display: grid;
-  gap: 0.5rem;
   margin: 1rem 0;
 }
 
-.watch-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+.watch p {
+  margin: 0 0 0.25rem;
 }
 
-.watch-label {
-  flex: none;
-  width: 4rem;
-}
-
-.watch-logos {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.watch-option {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.15rem;
+.watch a {
   color: inherit;
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-color: var(--none);
+  text-underline-offset: 0.15em;
 }
 
-.watch-logo {
-  display: block;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 0.5rem;
-}
-
-.watch-name {
-  font-size: 0.9rem;
+.watch a:hover {
+  text-decoration-color: currentColor;
 }
 
 .aggregate {

@@ -1,11 +1,15 @@
 import type { MovieWatchProvider } from "@arscritica/db";
-import { posterUrl } from "@/lib/format";
+import { Fragment } from "react";
 
-const groups = [
-  { kind: "stream", label: "Streama" },
-  { kind: "rent", label: "Hyr" },
-  { kind: "buy", label: "Köp" },
-] as const;
+const displayNames: Record<string, string> = {
+  "Apple TV Store": "Apple TV",
+  "Amazon Video": "Amazon",
+  "Amazon Prime Video": "Prime Video",
+};
+
+function displayName(name: string) {
+  return displayNames[name] ?? name.replace(/ Amazon Channel$/, " via Prime Video");
+}
 
 const primeVideo = {
   home: "https://www.primevideo.com",
@@ -57,6 +61,38 @@ function providerUrl(provider: MovieWatchProvider, title: string): string | unde
   return service.search ? service.search + encodeURIComponent(title) : service.home;
 }
 
+function storeLabel(providers: MovieWatchProvider[]) {
+  const rents = providers.some((provider) => provider.kind === "rent");
+  const buys = providers.some((provider) => provider.kind === "buy");
+  if (rents && buys) return "Hyr eller köp";
+  return rents ? "Hyr" : "Köp";
+}
+
+function uniqueByName(providers: MovieWatchProvider[]) {
+  const names = new Set<string>();
+  return providers.filter((provider) => !names.has(provider.name) && names.add(provider.name));
+}
+
+function ProviderLinks({ providers, title }: { providers: MovieWatchProvider[]; title: string }) {
+  return providers.map((provider, index) => {
+    const href = providerUrl(provider, title);
+    const name = displayName(provider.name);
+    const separator = index === 0 ? "" : index === providers.length - 1 ? " och " : ", ";
+    return (
+      <Fragment key={provider.name}>
+        {separator}
+        {href ? (
+          <a href={href} target="_blank" rel="noopener noreferrer">
+            {name}
+          </a>
+        ) : (
+          name
+        )}
+      </Fragment>
+    );
+  });
+}
+
 export function WatchProviders({
   providers,
   title,
@@ -64,45 +100,23 @@ export function WatchProviders({
   providers: MovieWatchProvider[];
   title: string;
 }) {
-  if (!providers.length) return null;
+  const streaming = uniqueByName(providers.filter((provider) => provider.kind === "stream"));
+  const store = providers.filter((provider) => provider.kind !== "stream");
+  const stores = uniqueByName(store);
+  if (!streaming.length && !stores.length) return null;
   return (
     <section className="watch">
-      {groups.map(({ kind, label }) => {
-        const names = new Set<string>();
-        const matching = providers.filter(
-          (provider) =>
-            provider.kind === kind && !names.has(provider.name) && names.add(provider.name),
-        );
-        if (!matching.length) return null;
-        return (
-          <div key={kind} className="watch-row">
-            <span className="watch-label muted">{label}</span>
-            <div className="watch-logos">
-              {matching.map((provider) => (
-                <a
-                  key={provider.name}
-                  className="watch-option"
-                  href={providerUrl(provider, title)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title={provider.name}
-                >
-                  {provider.logoPath ? (
-                    <img
-                      className="watch-logo"
-                      src={posterUrl(provider.logoPath, "w92")}
-                      alt={provider.name}
-                      loading="lazy"
-                    />
-                  ) : (
-                    <span className="watch-name">{provider.name}</span>
-                  )}
-                </a>
-              ))}
-            </div>
-          </div>
-        );
-      })}
+      {streaming.length > 0 && (
+        <p>
+          <strong>Streama</strong> på <ProviderLinks providers={streaming} title={title} />.
+        </p>
+      )}
+      {stores.length > 0 && (
+        <p>
+          <strong>{storeLabel(store)}</strong> på <ProviderLinks providers={stores} title={title} />
+          .
+        </p>
+      )}
     </section>
   );
 }
