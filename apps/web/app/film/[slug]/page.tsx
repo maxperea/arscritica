@@ -51,9 +51,10 @@ export default async function MoviePage({ params }: Props) {
           <li key={review.url} className="list-item">
             <ScoreBadge score={review.normalizedScore} />
             <div className="item-body">
-              <Link href={`/publikationer/${review.publicationSlug}/`} className="item-title">
-                {review.publicationName}
-              </Link>
+              <a href={review.url} className="item-title" target="_blank" rel="noopener noreferrer">
+                {review.publicationPaywalled && <PaywallIcon />}
+                {review.publicationName} ↗
+              </a>
               <div className="muted">
                 {[
                   formatRawScore(review.rawScore, review.scaleMax),
@@ -62,17 +63,12 @@ export default async function MoviePage({ params }: Props) {
                 ]
                   .filter(Boolean)
                   .join(" · ")}
+                {" · "}
+                <Link href={`/publikationer/${review.publicationSlug}/`} className="quiet-link">
+                  Alla från {review.publicationName}
+                </Link>
               </div>
             </div>
-            <a
-              href={review.url}
-              className="external-link"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {review.publicationPaywalled && <PaywallIcon />}
-              Läs recensionen ↗
-            </a>
           </li>
         ))}
       </ul>
