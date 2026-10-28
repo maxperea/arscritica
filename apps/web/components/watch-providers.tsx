@@ -7,41 +7,64 @@ const groups = [
   { kind: "buy", label: "Köp" },
 ] as const;
 
-const priceFormat = new Intl.NumberFormat("sv-SE", { maximumFractionDigits: 2 });
-
-const primeVideoSearch = "https://www.primevideo.com/-/sv/search/ref=atv_sr_sug?phrase=";
-
-const searchUrls: Record<string, string> = {
-  "SF Anytime": "https://www.sfanytime.com/sv/search?query=",
-  Viaplay: "https://viaplay.se/search?query=",
-  "Amazon Video": primeVideoSearch,
-  "Amazon Prime Video": primeVideoSearch,
-  "Tele2 Play": "https://www.tele2play.se/search?q=",
-  "SVT Play": "https://www.svtplay.se/sok?q=",
-  Netflix: "https://www.netflix.com/search?q=",
+const primeVideo = {
+  home: "https://www.primevideo.com",
+  search: "https://www.primevideo.com/-/sv/search/ref=atv_sr_sug?phrase=",
 };
 
-function providerUrl(provider: MovieWatchProvider, title: string, fallback: string): string {
-  if (provider.url) return provider.url;
-  const search = searchUrls[provider.name];
-  return search ? search + encodeURIComponent(title) : fallback;
-}
+const services: Record<string, { home: string; search?: string }> = {
+  "Amazon Prime Video": primeVideo,
+  "Amazon Video": primeVideo,
+  "Apple TV": { home: "https://tv.apple.com/se" },
+  "Apple TV Amazon Channel": primeVideo,
+  "Apple TV Store": { home: "https://tv.apple.com/se" },
+  Artiflix: { home: "https://artiflix.com" },
+  Blockbuster: { home: "https://www.blockbuster.se" },
+  Cineasterna: { home: "https://www.cineasterna.com/sv" },
+  Cultpix: { home: "https://www.cultpix.com" },
+  "Disney Plus": { home: "https://www.disneyplus.com/sv-se" },
+  "DocAlliance Films": { home: "https://dafilms.com" },
+  "Draken Film": { home: "https://www.drakenfilm.se" },
+  "FOUND TV": { home: "https://foundtv.com" },
+  "HBO Max": { home: "https://www.hbomax.com/se/sv" },
+  "HBO Max Amazon Channel": primeVideo,
+  "Lionsgate+ Amazon Channel": primeVideo,
+  "MGM Amazon Channel": primeVideo,
+  MUBI: { home: "https://mubi.com/sv/se" },
+  "MUBI Amazon Channel": primeVideo,
+  Netflix: { home: "https://www.netflix.com/se", search: "https://www.netflix.com/search?q=" },
+  "Netflix Kids": { home: "https://www.netflix.com/se" },
+  Plex: { home: "https://watch.plex.tv" },
+  "Rakuten TV": { home: "https://www.rakuten.tv/se" },
+  "SF Anytime": {
+    home: "https://www.sfanytime.com/sv",
+    search: "https://www.sfanytime.com/sv/search?query=",
+  },
+  "SVT Play": { home: "https://www.svtplay.se", search: "https://www.svtplay.se/sok?q=" },
+  "Shadowz Amazon Channel": primeVideo,
+  SkyShowtime: { home: "https://www.skyshowtime.com/se" },
+  "TV4 Play": { home: "https://www.tv4play.se" },
+  "Tele2 Play": { home: "https://www.tele2play.se", search: "https://www.tele2play.se/search?q=" },
+  "TriArt Play": { home: "https://www.triart.se/play" },
+  "True Story": { home: "https://www.truestory.film" },
+  Viaplay: { home: "https://viaplay.se", search: "https://viaplay.se/search?query=" },
+};
 
-function formatPrice(price: number): string {
-  return `${priceFormat.format(price)} kr`;
+function providerUrl(provider: MovieWatchProvider, title: string): string | undefined {
+  if (provider.url) return provider.url;
+  const service = services[provider.name];
+  if (!service) return undefined;
+  return service.search ? service.search + encodeURIComponent(title) : service.home;
 }
 
 export function WatchProviders({
   providers,
   title,
-  tmdbId,
 }: {
   providers: MovieWatchProvider[];
   title: string;
-  tmdbId: number;
 }) {
   if (!providers.length) return null;
-  const link = `https://www.themoviedb.org/movie/${tmdbId}/watch?locale=SE`;
   return (
     <section className="watch">
       {groups.map(({ kind, label }) => {
@@ -59,7 +82,7 @@ export function WatchProviders({
                 <a
                   key={provider.name}
                   className="watch-option"
-                  href={providerUrl(provider, title, link)}
+                  href={providerUrl(provider, title)}
                   target="_blank"
                   rel="noopener noreferrer"
                   title={provider.name}
@@ -73,9 +96,6 @@ export function WatchProviders({
                     />
                   ) : (
                     <span className="watch-name">{provider.name}</span>
-                  )}
-                  {provider.price !== null && (
-                    <span className="watch-price muted">{formatPrice(provider.price)}</span>
                   )}
                 </a>
               ))}

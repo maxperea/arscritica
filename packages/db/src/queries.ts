@@ -41,7 +41,6 @@ export interface MovieWatchProvider {
   name: string;
   logoPath: string | null;
   url: string | null;
-  price: number | null;
 }
 
 export interface MovieDetail extends MovieSummary {
@@ -174,19 +173,16 @@ export function getMovie(db: Database, slug: string): MovieDetail | undefined {
     slug,
   );
   if (!details) return undefined;
-  const offers = allRows<{ kind: WatchKind; name: string; url: string; price: number | null }>(
+  const offers = allRows<{ name: string; url: string }>(
     db.prepare(
-      `SELECT o.kind, o.name, o.url, o.price FROM movie_watch_offers o
+      `SELECT o.name, o.url FROM movie_watch_offers o
        JOIN movies m ON m.id = o.movie_id
        WHERE o.movie_id = ? AND m.watchmode_checked_at >= datetime('now', '-30 days')`,
     ),
     details.id,
   );
-  const pricesByProvider = new Map(
-    offers.map((offer) => [`${offer.kind}:${watchOfferName(offer.name)}`, offer.price]),
-  );
   const urlsByService = new Map(offers.map((offer) => [watchOfferName(offer.name), offer.url]));
-  const watchProviders = allRows<Omit<MovieWatchProvider, "url" | "price">>(
+  const watchProviders = allRows<Omit<MovieWatchProvider, "url">>(
     db.prepare(
       `SELECT kind, name, logo_path AS logoPath FROM movie_watch_providers
        WHERE movie_id = ? ORDER BY display_priority, name`,
@@ -197,7 +193,6 @@ export function getMovie(db: Database, slug: string): MovieDetail | undefined {
     return {
       ...provider,
       url: urlsByService.get(name) ?? null,
-      price: pricesByProvider.get(`${provider.kind}:${name}`) ?? null,
     };
   });
   const reviews = allRows<MovieReview>(
