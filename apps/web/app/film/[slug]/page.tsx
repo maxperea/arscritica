@@ -5,6 +5,7 @@ import { getMovie, movieSlugs } from "@arscritica/db";
 import { Poster } from "@/components/poster";
 import { PaywallIcon } from "@/components/paywall-icon";
 import { ScoreBadge } from "@/components/score-badge";
+import { WatchProviders } from "@/components/watch-providers";
 import { getDb } from "@/lib/db";
 import { formatDate, formatRawScore, reviewCountLabel } from "@/lib/format";
 import { slugParams } from "@/lib/static-params";
@@ -45,6 +46,7 @@ export default async function MoviePage({ params }: Props) {
         </div>
         <div className="movie-about">
           {movie.overview ? <p className="overview">{movie.overview}</p> : null}
+          <WatchProviders providers={movie.watchProviders} tmdbId={movie.tmdbId} />
           {movie.imdbId ? (
             <p>
               <a

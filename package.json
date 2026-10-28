@@ -11,6 +11,7 @@
     "build": "pnpm --filter @arscritica/web build",
     "scrape": "pnpm --filter @arscritica/scraper scrape",
     "backfill-details": "pnpm --filter @arscritica/scraper backfill-details",
+    "refresh-watch-providers": "pnpm --filter @arscritica/scraper refresh-watch-providers",
     "seed": "pnpm --filter @arscritica/db seed",
     "db:init": "pnpm --filter @arscritica/db migrate",
     "test": "pnpm -r --if-present test",

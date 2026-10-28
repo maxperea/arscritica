@@ -1,3 +1,4 @@
+import type { WatchKind, WatchProvider } from "@arscritica/db";
 import { normalizeTitle } from "@arscritica/db/text";
 import { USER_AGENT } from "./fetcher";
 
@@ -34,6 +35,23 @@ export interface TmdbMovieDetails {
   imdbId?: string;
   overview?: string;
 }
+
+interface TmdbWatchProvider {
+  provider_id: number;
+  provider_name: string;
+  logo_path?: string | null;
+  display_priority?: number;
+}
+
+type TmdbWatchRegion = Partial<Record<string, TmdbWatchProvider[]>>;
+
+const watchKinds: Record<string, WatchKind> = {
+  flatrate: "stream",
+  free: "stream",
+  ads: "stream",
+  rent: "rent",
+  buy: "buy",
+};
 
 interface TmdbGenre {
   id: number;
@@ -94,6 +112,23 @@ export class TmdbClient implements MovieLookup {
   async englishOverview(tmdbId: number): Promise<string | undefined> {
     const movie = await this.get<TmdbDetailsResult>(`movie/${tmdbId}`, { language: "en-US" });
     return movie.overview?.trim() || undefined;
+  }
+
+  async swedishWatchProviders(tmdbId: number): Promise<WatchProvider[]> {
+    const body = await this.get<{ results?: Record<string, TmdbWatchRegion> }>(
+      `movie/${tmdbId}/watch/providers`,
+    );
+    return Object.entries(body.results?.SE ?? {}).flatMap(([type, providers]) => {
+      const kind = watchKinds[type];
+      if (!kind || !Array.isArray(providers)) return [];
+      return providers.map((provider) => ({
+        kind,
+        providerId: provider.provider_id,
+        name: provider.provider_name,
+        logoPath: provider.logo_path ?? undefined,
+        displayPriority: provider.display_priority ?? 0,
+      }));
+    });
   }
 
   private async search(query: string, year?: number): Promise<TmdbMovie[]> {

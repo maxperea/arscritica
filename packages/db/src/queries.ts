@@ -1,4 +1,5 @@
 import type { Database } from "./database";
+import type { WatchKind } from "./writes";
 import { allRows, getRow } from "./sql";
 
 export interface MovieSummary {
@@ -29,9 +30,17 @@ export interface MovieReview {
   publicationPaywalled: boolean;
 }
 
+export interface MovieWatchProvider {
+  kind: WatchKind;
+  name: string;
+  logoPath: string | null;
+}
+
 export interface MovieDetail extends MovieSummary {
+  tmdbId: number;
   imdbId: string | null;
   overview: string | null;
+  watchProviders: MovieWatchProvider[];
   reviews: MovieReview[];
 }
 
@@ -127,9 +136,24 @@ export function getMovie(db: Database, slug: string): MovieDetail | undefined {
     slug,
   );
   if (!movie) return undefined;
-  const details = getRow<{ imdbId: string | null; overview: string | null }>(
-    db.prepare("SELECT imdb_id AS imdbId, overview FROM movies WHERE slug = ?"),
+  const details = getRow<{
+    id: number;
+    tmdbId: number;
+    imdbId: string | null;
+    overview: string | null;
+  }>(
+    db.prepare(
+      "SELECT id, tmdb_id AS tmdbId, imdb_id AS imdbId, overview FROM movies WHERE slug = ?",
+    ),
     slug,
+  );
+  if (!details) return undefined;
+  const watchProviders = allRows<MovieWatchProvider>(
+    db.prepare(
+      `SELECT kind, name, logo_path AS logoPath FROM movie_watch_providers
+       WHERE movie_id = ? ORDER BY display_priority, name`,
+    ),
+    details.id,
   );
   const reviews = allRows<MovieReview>(
     db.prepare(
@@ -147,8 +171,10 @@ export function getMovie(db: Database, slug: string): MovieDetail | undefined {
   );
   return {
     ...movie,
-    imdbId: details?.imdbId ?? null,
-    overview: details?.overview || null,
+    tmdbId: details.tmdbId,
+    imdbId: details.imdbId,
+    overview: details.overview || null,
+    watchProviders,
     reviews: reviews.map((review) => ({
       ...review,
       publicationPaywalled: Boolean(review.publicationPaywalled),

@@ -213,6 +213,45 @@ main {
   line-height: 1.5;
 }
 
+.watch {
+  display: grid;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.watch-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.watch-label {
+  flex: none;
+  width: 4rem;
+}
+
+.watch-logos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.watch-logo {
+  display: block;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+}
+
+.watch-name {
+  font-size: 0.9rem;
+}
+
+.watch-credit {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
 .aggregate {
   display: flex;
   align-items: center;

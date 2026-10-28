@@ -19,6 +19,16 @@ export interface MovieInput {
   genres?: string[];
 }
 
+export type WatchKind = "stream" | "rent" | "buy";
+
+export interface WatchProvider {
+  kind: WatchKind;
+  providerId: number;
+  name: string;
+  logoPath?: string;
+  displayPriority: number;
+}
+
 export interface MovieCandidate {
   id: number;
   tmdbId: number | null;
@@ -108,6 +118,46 @@ export function setMovieOverview(db: Database, movieId: number, overview: string
 
 export function setMovieEnglishOverview(db: Database, movieId: number, overview: string): void {
   db.prepare("UPDATE movies SET overview_en = ? WHERE id = ?").run(overview, movieId);
+}
+
+export function setMovieWatchProviders(
+  db: Database,
+  movieId: number,
+  providers: WatchProvider[],
+): void {
+  db.prepare("DELETE FROM movie_watch_providers WHERE movie_id = ?").run(movieId);
+  const insert = db.prepare(
+    `INSERT OR IGNORE INTO movie_watch_providers
+       (movie_id, kind, provider_id, name, logo_path, display_priority)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  );
+  for (const provider of providers) {
+    insert.run(
+      movieId,
+      provider.kind,
+      provider.providerId,
+      provider.name,
+      provider.logoPath ?? null,
+      provider.displayPriority,
+    );
+  }
+  db.prepare("UPDATE movies SET watch_providers_checked_at = datetime('now') WHERE id = ?").run(
+    movieId,
+  );
+}
+
+export function tmdbMoviesDueForWatchProviders(db: Database): { id: number; tmdbId: number }[] {
+  return allRows(
+    db.prepare(
+      `SELECT id, tmdb_id AS tmdbId FROM movies
+       WHERE tmdb_id IS NOT NULL
+         AND (watch_providers_checked_at IS NULL
+           OR watch_providers_checked_at < datetime('now',
+             CASE WHEN year >= CAST(strftime('%Y', 'now') AS INTEGER) - 1
+               THEN '-20 hours' ELSE '-7 days' END))
+       ORDER BY watch_providers_checked_at IS NOT NULL, watch_providers_checked_at`,
+    ),
+  );
 }
 
 export function tmdbMoviesMissingDetails(db: Database): { id: number; tmdbId: number }[] {

@@ -28,6 +28,7 @@ Other commands:
 ```sh
 pnpm scrape [--source <slug>]... [--since 2026-01-01] [--limit 20] [--db path]
 pnpm backfill-details [--db path]  # fetch TMDB genres, IMDb ids and overviews (English-only ones go to overview_en for translation)
+pnpm refresh-watch-providers [--db path]  # fetch Swedish streaming/rent/buy options from TMDB (JustWatch data)
 pnpm build     # static export to apps/web/out
 pnpm test
 pnpm lint && pnpm format:check && pnpm typecheck

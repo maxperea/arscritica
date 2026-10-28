@@ -59,4 +59,16 @@ export const migrations: string[] = [
   `
   ALTER TABLE movies ADD COLUMN overview_en TEXT;
   `,
+  `
+  ALTER TABLE movies ADD COLUMN watch_providers_checked_at TEXT;
+  CREATE TABLE movie_watch_providers (
+    movie_id INTEGER NOT NULL REFERENCES movies (id),
+    kind TEXT NOT NULL,
+    provider_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    logo_path TEXT,
+    display_priority INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (movie_id, kind, provider_id)
+  );
+  `,
 ];
