@@ -70,9 +70,14 @@ export class TmdbClient implements MovieLookup {
     );
   }
 
-  async movieGenres(tmdbId: number): Promise<string[]> {
-    const movie = await this.get<{ genres?: TmdbGenre[] }>(`movie/${tmdbId}`);
-    return (movie.genres ?? []).map((genre) => genre.name);
+  async movieDetails(tmdbId: number): Promise<{ genres: string[]; imdbId?: string }> {
+    const movie = await this.get<{ genres?: TmdbGenre[]; imdb_id?: string | null }>(
+      `movie/${tmdbId}`,
+    );
+    return {
+      genres: (movie.genres ?? []).map((genre) => genre.name),
+      imdbId: movie.imdb_id || undefined,
+    };
   }
 
   private async search(query: string, year?: number): Promise<TmdbMovie[]> {

@@ -10,7 +10,7 @@
     "dev": "pnpm --filter @arscritica/web dev",
     "build": "pnpm --filter @arscritica/web build",
     "scrape": "pnpm --filter @arscritica/scraper scrape",
-    "backfill-genres": "pnpm --filter @arscritica/scraper backfill-genres",
+    "backfill-details": "pnpm --filter @arscritica/scraper backfill-details",
     "seed": "pnpm --filter @arscritica/db seed",
     "db:init": "pnpm --filter @arscritica/db migrate",
     "test": "pnpm -r --if-present test",

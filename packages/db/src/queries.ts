@@ -30,6 +30,7 @@ export interface MovieReview {
 }
 
 export interface MovieDetail extends MovieSummary {
+  imdbId: string | null;
   reviews: MovieReview[];
 }
 
@@ -125,6 +126,11 @@ export function getMovie(db: Database, slug: string): MovieDetail | undefined {
     slug,
   );
   if (!movie) return undefined;
+  const imdbId =
+    getRow<{ imdbId: string | null }>(
+      db.prepare("SELECT imdb_id AS imdbId FROM movies WHERE slug = ?"),
+      slug,
+    )?.imdbId ?? null;
   const reviews = allRows<MovieReview>(
     db.prepare(
       `SELECT r.url, r.raw_score AS rawScore, r.scale_max AS scaleMax,
@@ -141,6 +147,7 @@ export function getMovie(db: Database, slug: string): MovieDetail | undefined {
   );
   return {
     ...movie,
+    imdbId,
     reviews: reviews.map((review) => ({
       ...review,
       publicationPaywalled: Boolean(review.publicationPaywalled),

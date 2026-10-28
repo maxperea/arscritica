@@ -98,12 +98,17 @@ export function setMovieGenres(db: Database, movieId: number, genres: string[]):
   for (const genre of genres) insert.run(movieId, genre);
 }
 
-export function tmdbMoviesWithoutGenres(db: Database): { id: number; tmdbId: number }[] {
+export function setMovieImdbId(db: Database, movieId: number, imdbId: string | undefined): void {
+  db.prepare("UPDATE movies SET imdb_id = ? WHERE id = ?").run(imdbId ?? null, movieId);
+}
+
+export function tmdbMoviesMissingDetails(db: Database): { id: number; tmdbId: number }[] {
   return allRows(
     db.prepare(
       `SELECT id, tmdb_id AS tmdbId FROM movies m
        WHERE tmdb_id IS NOT NULL
-         AND NOT EXISTS (SELECT 1 FROM movie_genres g WHERE g.movie_id = m.id)`,
+         AND (imdb_id IS NULL
+           OR NOT EXISTS (SELECT 1 FROM movie_genres g WHERE g.movie_id = m.id))`,
     ),
   );
 }

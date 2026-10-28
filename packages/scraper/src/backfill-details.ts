@@ -1,6 +1,11 @@
 import path from "node:path";
 import { parseArgs } from "node:util";
-import { openDatabase, setMovieGenres, tmdbMoviesWithoutGenres } from "@arscritica/db";
+import {
+  openDatabase,
+  setMovieGenres,
+  setMovieImdbId,
+  tmdbMoviesMissingDetails,
+} from "@arscritica/db";
 import { TmdbClient } from "./tmdb";
 
 const { values } = parseArgs({ options: { db: { type: "string" } } });
@@ -14,19 +19,20 @@ if (!tmdb) {
 const invocationDir = process.env.INIT_CWD ?? process.cwd();
 const db = openDatabase({ path: values.db ? path.resolve(invocationDir, values.db) : undefined });
 try {
-  const movies = tmdbMoviesWithoutGenres(db);
+  const movies = tmdbMoviesMissingDetails(db);
   let updated = 0;
   for (const movie of movies) {
     try {
-      const genres = await tmdb.movieGenres(movie.tmdbId);
-      setMovieGenres(db, movie.id, genres);
-      if (genres.length) updated++;
+      const details = await tmdb.movieDetails(movie.tmdbId);
+      setMovieGenres(db, movie.id, details.genres);
+      setMovieImdbId(db, movie.id, details.imdbId);
+      if (details.genres.length || details.imdbId) updated++;
     } catch (error) {
-      console.warn(`TMDB genre lookup failed for movie ${movie.tmdbId}: ${String(error)}`);
+      console.warn(`TMDB details lookup failed for movie ${movie.tmdbId}: ${String(error)}`);
       process.exitCode = 1;
     }
   }
-  console.log(`Added genres to ${updated} of ${movies.length} movies.`);
+  console.log(`Added details to ${updated} of ${movies.length} movies.`);
 } finally {
   db.close();
 }

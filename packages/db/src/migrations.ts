@@ -50,4 +50,7 @@ export const migrations: string[] = [
   `
   ALTER TABLE publications ADD COLUMN paywalled INTEGER NOT NULL DEFAULT 0;
   `,
+  `
+  ALTER TABLE movies ADD COLUMN imdb_id TEXT;
+  `,
 ];

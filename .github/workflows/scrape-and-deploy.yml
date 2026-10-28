@@ -33,10 +33,10 @@ jobs:
         run: pnpm scrape
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-      - name: Backfill genres
+      - name: Backfill movie details
         if: github.event_name != 'push'
         continue-on-error: true
-        run: pnpm backfill-genres
+        run: pnpm backfill-details
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
       - name: Persist database

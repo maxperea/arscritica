@@ -27,7 +27,7 @@ Other commands:
 
 ```sh
 pnpm scrape [--source <slug>]... [--since 2026-01-01] [--limit 20] [--db path]
-pnpm backfill-genres [--db path]   # fetch TMDB genres for matched movies that lack them
+pnpm backfill-details [--db path]  # fetch TMDB genres and IMDb ids for matched movies that lack them
 pnpm build     # static export to apps/web/out
 pnpm test
 pnpm lint && pnpm format:check && pnpm typecheck

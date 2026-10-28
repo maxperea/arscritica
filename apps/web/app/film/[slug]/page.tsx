@@ -42,6 +42,18 @@ export default async function MoviePage({ params }: Props) {
             <ScoreBadge score={movie.score} large />
             <span className="muted">Snitt av {reviewCountLabel(movie.reviewCount)}</span>
           </div>
+          {movie.imdbId ? (
+            <p>
+              <a
+                href={`https://www.imdb.com/title/${movie.imdbId}/`}
+                className="quiet-link"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                IMDb ↗
+              </a>
+            </p>
+          ) : null}
         </div>
       </header>
 
