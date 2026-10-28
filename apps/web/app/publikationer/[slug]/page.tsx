@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPublication, publicationSlugs } from "@arscritica/db";
 import { PaywallIcon } from "@/components/paywall-icon";
-import { ScoreBadge } from "@/components/score-badge";
 import { getDb } from "@/lib/db";
 import { formatDate, formatRawScore, reviewCountLabel } from "@/lib/format";
 import { slugParams } from "@/lib/static-params";
@@ -35,25 +34,20 @@ export default async function PublicationPage({ params }: Props) {
           Till {publication.name} ↗
         </a>
       </p>
-      <ul className="list">
+      <ul className="list publication-reviews">
         {publication.reviews.map((review) => (
-          <li key={review.url} className="list-item">
-            <ScoreBadge score={review.normalizedScore} />
+          <li key={review.url} className="review-item">
             <div className="item-body">
               <Link href={`/film/${review.movieSlug}/`} className="item-title">
                 {review.movieTitle}
               </Link>
               <div className="muted">
-                {[
-                  review.movieYear,
-                  formatRawScore(review.rawScore, review.scaleMax),
-                  review.critic,
-                  formatDate(review.publishedAt),
-                ]
+                {[review.movieYear, review.critic, formatDate(review.publishedAt)]
                   .filter(Boolean)
                   .join(" · ")}
               </div>
             </div>
+            <span className="review-score">{formatRawScore(review.rawScore, review.scaleMax)}</span>
             <a
               href={review.url}
               className="external-link"

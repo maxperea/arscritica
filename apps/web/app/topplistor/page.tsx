@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Topplistor" };
 export default function TopListsPage() {
   return (
     <>
-      <h1>Topplistor</h1>
+      <h1 className="visually-hidden">Topplistor</h1>
       <TopLists movies={topListMovies(getDb())} />
     </>
   );

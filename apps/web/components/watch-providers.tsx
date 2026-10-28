@@ -103,20 +103,25 @@ export function WatchProviders({
   const streaming = uniqueByName(providers.filter((provider) => provider.kind === "stream"));
   const store = providers.filter((provider) => provider.kind !== "stream");
   const stores = uniqueByName(store);
-  if (!streaming.length && !stores.length) return null;
   return (
     <section className="watch">
-      {streaming.length > 0 && (
-        <p>
-          <strong>Streama</strong> på <ProviderLinks providers={streaming} title={title} />.
-        </p>
-      )}
-      {stores.length > 0 && (
-        <p>
-          <strong>{storeLabel(store)}</strong> på <ProviderLinks providers={stores} title={title} />
-          .
-        </p>
-      )}
+      <h2>Se filmen</h2>
+      <div>
+        {!streaming.length && !stores.length ? (
+          <p className="muted">Vi saknar uppgifter om var filmen kan ses.</p>
+        ) : null}
+        {streaming.length > 0 && (
+          <p>
+            <strong>Streama</strong> på <ProviderLinks providers={streaming} title={title} />.
+          </p>
+        )}
+        {stores.length > 0 && (
+          <p>
+            <strong>{storeLabel(store)}</strong> på{" "}
+            <ProviderLinks providers={stores} title={title} />.
+          </p>
+        )}
+      </div>
     </section>
   );
 }

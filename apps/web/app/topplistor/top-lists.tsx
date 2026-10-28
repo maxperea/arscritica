@@ -62,6 +62,9 @@ export function TopLists({ movies }: { movies: TopListMovie[] }) {
     const inPeriod = periodMovies(movies, period, now);
     const genreOptions = genres(inPeriod);
     const genreName = knownGenres.find((option) => option.slug === selection.genre)?.name;
+    if (genreName && !genreOptions.some((option) => option.slug === selection.genre)) {
+      genreOptions.unshift({ name: genreName, slug: selection.genre, count: 0 });
+    }
     const inGenre = filterByGenre(inPeriod, genreName);
     const serviceOptions = services(inGenre, watch);
     if (service && !serviceOptions.includes(service)) serviceOptions.unshift(service);
@@ -75,7 +78,12 @@ export function TopLists({ movies }: { movies: TopListMovie[] }) {
     return { genreOptions, genreName, serviceOptions, results, alternative };
   }, [movies, selection, periodOptions, knownGenres]);
 
-  if (!selection || !view) return null;
+  if (!selection || !view)
+    return (
+      <p className="muted" role="status">
+        Laddar filmer…
+      </p>
+    );
 
   function select(changes: Partial<Filters>) {
     if (!selection) return;
@@ -103,82 +111,119 @@ export function TopLists({ movies }: { movies: TopListMovie[] }) {
   const watchPhrase = watchOptions.find((option) => option.kind === watch)?.phrase;
   const { genreOptions, genreName, serviceOptions, results, alternative } = view;
   const visible = showAll ? results : results.slice(0, pageSize);
+  const hasFilters = period !== recentPeriod || Boolean(genre || watch || service);
 
   return (
     <>
-      <div className="segmented" role="group" aria-label="Period">
-        {periodOptions.map((option) => (
-          <button
-            key={option}
-            type="button"
-            aria-pressed={option === period}
-            onClick={() => selectPeriod(option)}
+      <div className="filters">
+        <div className="filter-field">
+          <label htmlFor="period">Period</label>
+          <select
+            id="period"
+            className="filter-select"
+            value={period}
+            onChange={(event) => selectPeriod(event.target.value)}
           >
-            {periodLabel(option)}
-          </button>
-        ))}
-      </div>
-      <div className="chips" role="group" aria-label="Var att se">
-        <button
-          type="button"
-          className="chip"
-          aria-pressed={!watch}
-          onClick={() => select({ watch: "" })}
-        >
-          Alla filmer
-        </button>
-        {watchOptions.map((option) => (
-          <button
-            key={option.kind}
-            type="button"
-            className="chip"
-            aria-pressed={option.kind === watch}
-            onClick={() => select({ watch: option.kind })}
+            {periodOptions.map((option) => (
+              <option key={option} value={option}>
+                {option === allPeriod ? "Alla perioder" : periodLabel(option)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="filter-field">
+          <label htmlFor="genre">Genre</label>
+          <select
+            id="genre"
+            className="filter-select"
+            value={genre}
+            onChange={(event) => select({ genre: event.target.value })}
           >
-            {option.label}
-          </button>
-        ))}
-        <select
-          className="chip service-select"
-          aria-label="Tjänst"
-          data-selected={Boolean(service)}
-          value={service}
-          onChange={(event) => select({ service: event.target.value })}
-        >
-          <option value="">Alla tjänster</option>
-          {serviceOptions.map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
-          ))}
-        </select>
-      </div>
-      {genreOptions.length > 0 && (
-        <div className="chips" role="group" aria-label="Genre">
-          <button
-            type="button"
-            className="chip"
-            aria-pressed={!genre}
-            onClick={() => select({ genre: "" })}
-          >
-            Alla genrer
-          </button>
-          {genreOptions.map((option) => (
-            <button
-              key={option.slug}
-              type="button"
-              className="chip"
-              aria-pressed={option.slug === genre}
-              onClick={() => select({ genre: option.slug })}
-            >
-              {option.name}
+            <option value="">Alla genrer</option>
+            {genreOptions.map((option) => (
+              <option key={option.slug} value={option.slug}>
+                {option.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <fieldset className="availability">
+          <legend>Tillgänglighet</legend>
+          <div className="segmented">
+            <button type="button" aria-pressed={!watch} onClick={() => select({ watch: "" })}>
+              Alla
             </button>
-          ))}
+            {watchOptions.map((option) => (
+              <button
+                key={option.kind}
+                type="button"
+                aria-pressed={option.kind === watch}
+                onClick={() => select({ watch: option.kind })}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <select
+            className="filter-select availability-select"
+            aria-label="Tillgänglighet"
+            value={watch}
+            onChange={(event) =>
+              select({
+                watch:
+                  watchOptions.find((option) => option.kind === event.target.value)?.kind ?? "",
+              })
+            }
+          >
+            <option value="">Alla filmer</option>
+            {watchOptions.map((option) => (
+              <option key={option.kind} value={option.kind}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </fieldset>
+        <div className="filter-field">
+          <label htmlFor="service">Tjänst</label>
+          <select
+            id="service"
+            className="filter-select"
+            value={service}
+            onChange={(event) => select({ service: event.target.value })}
+          >
+            <option value="">Alla tjänster</option>
+            {serviceOptions.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      {hasFilters && (
+        <div className="filter-summary">
+          <span className="muted">
+            {[
+              periodLabel(period),
+              genreName,
+              watchOptions.find((option) => option.kind === watch)?.label,
+              service,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </span>
+          <button
+            type="button"
+            className="text-button"
+            onClick={() => select({ period: recentPeriod, genre: "", watch: "", service: "" })}
+          >
+            Återställ filter
+          </button>
         </div>
       )}
       {results.length ? (
         <>
-          <p className="muted caption">
+          <p className="muted caption" role="status">
             {[periodCaption(period), results.length === 1 ? "1 film" : `${results.length} filmer`]
               .filter(Boolean)
               .join(" · ")
@@ -186,39 +231,45 @@ export function TopLists({ movies }: { movies: TopListMovie[] }) {
           </p>
           <MovieList movies={visible} />
           {visible.length < results.length && (
-            <button type="button" className="chip show-more" onClick={() => setShowAll(true)}>
+            <button type="button" className="button show-more" onClick={() => setShowAll(true)}>
               Visa fler
             </button>
           )}
         </>
       ) : (
         <div className="empty-state">
-          <p>
+          <p role="status">
             Inga filmer{genreName ? ` i genren ${genreName}` : ""}
             {watchPhrase ? ` ${watchPhrase}` : ""}
             {service ? ` på ${service}` : ""}
             {emptyPeriodPhrase(period)}.
           </p>
-          {genre && (
-            <button type="button" className="chip" onClick={() => select({ genre: "" })}>
-              Visa alla genrer
-            </button>
-          )}
-          {watch && (
-            <button type="button" className="chip" onClick={() => select({ watch: "" })}>
-              Visa alla filmer
-            </button>
-          )}
-          {service && (
-            <button type="button" className="chip" onClick={() => select({ service: "" })}>
-              Visa alla tjänster
-            </button>
-          )}
-          {alternative && (
-            <button type="button" className="chip" onClick={() => select({ period: alternative })}>
-              Visa {alternative === allPeriod ? "alla perioder" : periodLabel(alternative)}
-            </button>
-          )}
+          <div className="empty-actions">
+            {genre && (
+              <button type="button" className="button" onClick={() => select({ genre: "" })}>
+                Visa alla genrer
+              </button>
+            )}
+            {watch && (
+              <button type="button" className="button" onClick={() => select({ watch: "" })}>
+                Alla sätt att se
+              </button>
+            )}
+            {service && (
+              <button type="button" className="button" onClick={() => select({ service: "" })}>
+                Visa alla tjänster
+              </button>
+            )}
+            {alternative && (
+              <button
+                type="button"
+                className="button"
+                onClick={() => select({ period: alternative })}
+              >
+                Visa {alternative === allPeriod ? "alla perioder" : periodLabel(alternative)}
+              </button>
+            )}
+          </div>
         </div>
       )}
     </>

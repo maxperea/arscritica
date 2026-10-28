@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { SiteNav } from "@/components/site-nav";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,21 +13,22 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="sv">
       <body>
+        <a href="#main" className="skip-link">
+          Till innehållet
+        </a>
         <header className="site-header">
           <div className="container header-inner">
             <Link href="/" className="logo">
               Vox Critica
             </Link>
-            <nav>
-              <Link href="/topplistor/">Topplistor</Link>
-              <Link href="/publikationer/">Publikationer</Link>
-              <Link href="/sok/">Sök</Link>
-            </nav>
+            <SiteNav />
           </div>
         </header>
-        <main className="container">{children}</main>
+        <main id="main" className="container" tabIndex={-1}>
+          {children}
+        </main>
         <footer className="site-footer container">
-          Betyg från svenska publikationer, omräknade till en skala 0–100. Filmdata från{" "}
+          Filmrecensioner från svenska publikationer. Filmdata från{" "}
           <a href="https://www.themoviedb.org/">TMDB</a>. Streamingdata från{" "}
           <a href="https://www.justwatch.com/se">JustWatch</a> och{" "}
           <a href="https://www.watchmode.com/">Watchmode</a>.

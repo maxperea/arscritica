@@ -3,7 +3,8 @@ export function ScoreBadge({ score, large = false }: { score: number | null; lar
   return (
     <span
       className={`score score-${tone}${large ? " score-large" : ""}`}
-      title={score === null ? "Inget betyg" : `${score} av 100`}
+      role="img"
+      aria-label={score === null ? "Inget betyg" : `Betyg ${score}`}
     >
       {score ?? "–"}
     </span>

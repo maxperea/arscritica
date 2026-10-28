@@ -6,19 +6,19 @@ import { ScoreBadge } from "./score-badge";
 
 export function MovieList({ movies }: { movies: MovieSummary[] }) {
   return (
-    <ul className="list">
+    <ul className="list movie-list">
       {movies.map((movie) => (
-        <li key={movie.slug} className="list-item">
-          <ScoreBadge score={movie.score} />
-          <Poster path={movie.posterPath} title={movie.title} />
-          <div className="item-body">
-            <Link href={`/film/${movie.slug}/`} className="item-title">
-              {movie.title}
-            </Link>
-            <div className="muted">
-              {[movie.year, reviewCountLabel(movie.reviewCount)].filter(Boolean).join(" · ")}
-            </div>
-          </div>
+        <li key={movie.slug}>
+          <Link href={`/film/${movie.slug}/`} className="movie-link">
+            <Poster path={movie.posterPath} title={movie.title} decorative />
+            <span className="item-body">
+              <span className="item-title">{movie.title}</span>
+              <span className="item-meta muted">
+                {[movie.year, reviewCountLabel(movie.reviewCount)].filter(Boolean).join(" · ")}
+              </span>
+            </span>
+            <ScoreBadge score={movie.score} />
+          </Link>
         </li>
       ))}
     </ul>
