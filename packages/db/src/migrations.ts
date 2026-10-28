@@ -56,4 +56,7 @@ export const migrations: string[] = [
   `
   ALTER TABLE movies ADD COLUMN overview TEXT;
   `,
+  `
+  ALTER TABLE movies ADD COLUMN overview_en TEXT;
+  `,
 ];

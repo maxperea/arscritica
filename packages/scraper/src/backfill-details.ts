@@ -4,12 +4,12 @@ import {
   openDatabase,
   setMovieGenres,
   setMovieImdbId,
+  setMovieEnglishOverview,
   setMovieOverview,
   tmdbMoviesMissingDetails,
   type Database,
 } from "@arscritica/db";
 import { TmdbClient, type TmdbMovieDetails } from "./tmdb";
-import { SwedishTranslator } from "./translator";
 
 const { values } = parseArgs({ options: { db: { type: "string" } } });
 
@@ -18,8 +18,6 @@ if (!tmdb) {
   console.error("TMDB_API_KEY is not set.");
   process.exit(1);
 }
-
-const translator = SwedishTranslator.fromEnv();
 
 const invocationDir = process.env.INIT_CWD ?? process.cwd();
 const db = openDatabase({ path: values.db ? path.resolve(invocationDir, values.db) : undefined });
@@ -51,11 +49,6 @@ async function updateOverview(
 ): Promise<void> {
   if (details.overview) return setMovieOverview(db, movie.id, details.overview);
   const english = await tmdb.englishOverview(movie.tmdbId);
-  if (!english) return setMovieOverview(db, movie.id, "");
-  if (!translator) return;
-  try {
-    setMovieOverview(db, movie.id, await translator.translate(english));
-  } catch (error) {
-    console.warn(`Translating overview for movie ${movie.tmdbId} failed: ${String(error)}`);
-  }
+  if (english) setMovieEnglishOverview(db, movie.id, english);
+  else setMovieOverview(db, movie.id, "");
 }
