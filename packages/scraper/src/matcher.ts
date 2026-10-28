@@ -14,7 +14,10 @@ export async function resolveMovieId(
   review: ScrapedReview,
   lookup?: MovieLookup,
 ): Promise<number> {
-  const tmdbMovie = await lookupSafely(review, lookup);
+  const reviewedYear = review.publishedAt
+    ? new Date(review.publishedAt).getUTCFullYear()
+    : undefined;
+  const tmdbMovie = await lookupSafely(review, reviewedYear, lookup);
   if (!tmdbMovie) {
     return (
       findByTitle(db, review.title, review.year, false) ??
@@ -25,8 +28,8 @@ export async function resolveMovieId(
   const knownId = findMovieIdByTmdbId(db, tmdbMovie.id);
   if (knownId !== undefined) return knownId;
 
-  const movie = toMovieInput(tmdbMovie);
-  const untrackedId = findByTitle(db, review.title, tmdbMovie.year ?? review.year, true);
+  const movie = toMovieInput(tmdbMovie, reviewedYear);
+  const untrackedId = findByTitle(db, review.title, movie.year ?? review.year, true);
   if (untrackedId === undefined) return insertMovie(db, movie);
   attachTmdbData(db, untrackedId, movie);
   return untrackedId;
@@ -34,12 +37,10 @@ export async function resolveMovieId(
 
 async function lookupSafely(
   review: ScrapedReview,
+  reviewedYear: number | undefined,
   lookup?: MovieLookup,
 ): Promise<TmdbMovie | undefined> {
   try {
-    const reviewedYear = review.publishedAt
-      ? new Date(review.publishedAt).getUTCFullYear()
-      : undefined;
     return await lookup?.findMovie(review.title, review.year, reviewedYear);
   } catch (error) {
     console.warn(`TMDB lookup failed for "${review.title}": ${String(error)}`);
@@ -63,12 +64,16 @@ function findByTitle(
   return pool.length === 1 ? pool[0]!.id : undefined;
 }
 
-function toMovieInput(movie: TmdbMovie): MovieInput {
+function toMovieInput(movie: TmdbMovie, reviewedYear: number | undefined): MovieInput {
+  const year =
+    movie.year !== undefined && reviewedYear !== undefined
+      ? Math.min(movie.year, reviewedYear)
+      : movie.year;
   return {
     tmdbId: movie.id,
     title: movie.title,
     originalTitle: movie.originalTitle,
-    year: movie.year,
+    year,
     posterPath: movie.posterPath,
     genres: movie.genres,
   };

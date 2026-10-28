@@ -29,3 +29,22 @@ test("stores TMDB genres for matched movies", async () => {
 
   assert.deepEqual(topListMovies(db)[0]?.genres, ["Drama", "Komedi"]);
 });
+
+test("caps the TMDB year at the year of the review", async () => {
+  const db = openDatabase({ path: ":memory:" });
+  const movieId = await resolveMovieId(
+    db,
+    { title: "Árru", rawScore: 4, scaleMax: 5, publishedAt: "2026-06-13T05:30:00.000Z" },
+    {
+      findMovie: async () => ({
+        id: 1,
+        title: "Árru",
+        originalTitle: "Árru",
+        year: 2027,
+        genres: [],
+      }),
+    },
+  );
+
+  assert.equal(db.prepare("SELECT year FROM movies WHERE id = ?").get(movieId)?.year, 2026);
+});

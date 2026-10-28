@@ -87,7 +87,10 @@ export class TmdbClient implements MovieLookup {
     return (
       results.find(
         (movie) =>
-          normalizeTitle(movie.title) === key || normalizeTitle(movie.originalTitle) === key,
+          (normalizeTitle(movie.title) === key || normalizeTitle(movie.originalTitle) === key) &&
+          (reviewedYear === undefined ||
+            movie.year === undefined ||
+            movie.year <= reviewedYear + 1),
       ) ??
       results.find(
         (movie) =>

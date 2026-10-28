@@ -84,4 +84,14 @@ export const migrations: string[] = [
     PRIMARY KEY (movie_id, kind, name)
   );
   `,
+  `
+  UPDATE movies
+  SET year = (SELECT MIN(CAST(strftime('%Y', published_at) AS INTEGER)) FROM reviews WHERE movie_id = movies.id)
+  WHERE year > (SELECT MIN(CAST(strftime('%Y', published_at) AS INTEGER)) FROM reviews WHERE movie_id = movies.id);
+  UPDATE movies
+  SET slug = substr(slug, 1, length(slug) - 4) || year
+  WHERE slug GLOB '*-[0-9][0-9][0-9][0-9]'
+    AND substr(slug, -4) <> CAST(year AS TEXT)
+    AND NOT EXISTS (SELECT 1 FROM movies other WHERE other.slug = substr(movies.slug, 1, length(movies.slug) - 4) || movies.year);
+  `,
 ];
