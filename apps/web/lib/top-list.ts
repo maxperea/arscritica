@@ -56,14 +56,6 @@ export function genreSlug(name: string): string {
     .replace(/^-|-$/g, "");
 }
 
-export function ranks(movies: { score: number }[]): number[] {
-  let rank = 0;
-  return movies.map((movie, index) => {
-    if (index === 0 || movie.score !== movies[index - 1]?.score) rank = index + 1;
-    return rank;
-  });
-}
-
 function inPeriod(movie: TopListMovie, period: string, now: number): boolean {
   if (period === allPeriod) return true;
   if (period === recentPeriod) {

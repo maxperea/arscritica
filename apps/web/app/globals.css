@@ -305,14 +305,6 @@ main {
   margin: 0 0 0.75rem;
 }
 
-.rank {
-  flex: none;
-  width: 1.75rem;
-  text-align: right;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-
 .show-more {
   display: block;
   margin: 1rem auto 0;

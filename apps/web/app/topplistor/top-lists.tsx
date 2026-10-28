@@ -122,7 +122,7 @@ export function TopLists({ movies }: { movies: TopListMovie[] }) {
               .join(" · ")
               .replace(/^./, (letter) => letter.toUpperCase())}
           </p>
-          <MovieList movies={visible} ranked />
+          <MovieList movies={visible} />
           {visible.length < results.length && (
             <button type="button" className="chip show-more" onClick={() => setShowAll(true)}>
               Visa fler
