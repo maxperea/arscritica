@@ -182,10 +182,26 @@ main {
 }
 
 .movie-header {
-  display: flex;
-  gap: 1.5rem;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto 1fr;
+  column-gap: 1.5rem;
+  align-items: start;
   margin-top: 2rem;
+}
+
+.movie-header .poster {
+  grid-row: span 2;
+}
+
+@media (max-width: 600px) {
+  .movie-header .poster {
+    grid-row: auto;
+  }
+
+  .movie-about {
+    grid-column: 1 / -1;
+  }
 }
 
 .movie-header h1 {

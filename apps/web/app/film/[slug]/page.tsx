@@ -32,7 +32,7 @@ export default async function MoviePage({ params }: Props) {
     <article>
       <header className="movie-header">
         <Poster path={movie.posterPath} title={movie.title} large />
-        <div>
+        <div className="movie-heading">
           <h1>
             {movie.title}
             {movie.year ? <span className="muted"> ({movie.year})</span> : null}
@@ -42,6 +42,8 @@ export default async function MoviePage({ params }: Props) {
             <ScoreBadge score={movie.score} large />
             <span className="muted">Snitt av {reviewCountLabel(movie.reviewCount)}</span>
           </div>
+        </div>
+        <div className="movie-about">
           {movie.overview ? <p className="overview">{movie.overview}</p> : null}
           {movie.imdbId ? (
             <p>
