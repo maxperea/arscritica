@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { SiteNav } from "@/components/site-nav";
@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   title: { default: "Vox Critica", template: "%s – Vox Critica" },
   description: "Filmrecensioner från svenska publikationer, samlade på ett ställe.",
 };
+
+export const viewport: Viewport = { themeColor: "#ffffff" };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
