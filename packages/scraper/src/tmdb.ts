@@ -79,30 +79,47 @@ export class TmdbClient implements MovieLookup {
     reviewedYear?: number,
   ): Promise<TmdbMovie | undefined> {
     if (year) {
-      const sameYear = await this.search(title, year);
-      if (sameYear.length) return sameYear[0];
+      const sameYear = await this.firstFeature(await this.search(title, year));
+      if (sameYear) return sameYear;
       const anyYear = await this.search(title);
-      return anyYear.find((movie) => movie.year !== undefined && Math.abs(movie.year - year) <= 1);
+      return this.firstFeature(
+        anyYear.filter((movie) => movie.year !== undefined && Math.abs(movie.year - year) <= 1),
+      );
     }
     const key = normalizeTitle(title);
     const results = await this.search(title);
+    const exactMatches = results.filter(
+      (movie) =>
+        (normalizeTitle(movie.title) === key || normalizeTitle(movie.originalTitle) === key) &&
+        (reviewedYear === undefined || movie.year === undefined || movie.year <= reviewedYear + 1),
+    );
+    const closestFirst =
+      reviewedYear === undefined
+        ? exactMatches
+        : exactMatches.toSorted(
+            (a, b) => distance(a.year, reviewedYear) - distance(b.year, reviewedYear),
+          );
     return (
-      results.find(
-        (movie) =>
-          (normalizeTitle(movie.title) === key || normalizeTitle(movie.originalTitle) === key) &&
-          (reviewedYear === undefined ||
-            movie.year === undefined ||
-            movie.year <= reviewedYear + 1),
-      ) ??
-      results.find(
-        (movie) =>
-          reviewedYear !== undefined &&
-          movie.year !== undefined &&
-          movie.year <= reviewedYear &&
-          movie.year >= reviewedYear - 2 &&
-          [movie.title, movie.originalTitle].some((candidate) => titlesOverlap(title, candidate)),
+      (await this.firstFeature(closestFirst)) ??
+      this.firstFeature(
+        results.filter(
+          (movie) =>
+            reviewedYear !== undefined &&
+            movie.year !== undefined &&
+            movie.year <= reviewedYear &&
+            movie.year >= reviewedYear - 2 &&
+            [movie.title, movie.originalTitle].some((candidate) => titlesOverlap(title, candidate)),
+        ),
       )
     );
+  }
+
+  private async firstFeature(candidates: TmdbMovie[]): Promise<TmdbMovie | undefined> {
+    for (const movie of candidates.slice(0, maxFeatureChecks)) {
+      const runtime = (await this.get<TmdbDetailsResult>(`movie/${movie.id}`)).runtime;
+      if (!runtime || runtime >= shortFilmMinutes) return movie;
+    }
+    return undefined;
   }
 
   async movieDetails(tmdbId: number): Promise<TmdbMovieDetails> {
@@ -176,6 +193,12 @@ export class TmdbClient implements MovieLookup {
 const romanNumerals: Record<string, string> = { ii: "2", iii: "3", iv: "4", v: "5" };
 
 const longestRuntime = 1000;
+const shortFilmMinutes = 40;
+const maxFeatureChecks = 5;
+
+function distance(year: number | undefined, reviewedYear: number): number {
+  return year === undefined ? Number.MAX_SAFE_INTEGER : Math.abs(reviewedYear - year);
+}
 
 function validRuntime(runtime: number | null | undefined): number | undefined {
   return Number.isInteger(runtime) && runtime! > 0 && runtime! <= longestRuntime
