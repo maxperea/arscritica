@@ -678,21 +678,25 @@ main {
 
   .movie-header {
     grid-template-columns: min(5rem, 25%) minmax(0, 1fr);
-    gap: 1rem;
+    gap: 0.75rem 1rem;
   }
 
   .movie-heading {
-    grid-column: 1 / -1;
+    grid-column: 2;
     grid-row: 1;
   }
 
   .movie-heading h1 {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
+  }
+
+  .movie-heading p {
+    margin-top: 0.25rem;
   }
 
   .movie-header .poster {
     grid-column: 1;
-    grid-row: 2;
+    grid-row: 1 / 3;
     width: 100%;
     height: auto;
     aspect-ratio: 2 / 3;
@@ -701,7 +705,7 @@ main {
   .aggregate {
     grid-column: 2;
     grid-row: 2;
-    align-self: center;
+    align-self: start;
     flex-wrap: wrap;
     gap: 0.75rem;
   }
@@ -786,5 +790,9 @@ main {
   .score-large {
     width: 3rem;
     height: 3rem;
+  }
+
+  .movie-heading h1 {
+    font-size: 1.375rem;
   }
 }
