@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Sök" };
 export default function SearchPage() {
   return (
     <>
-      <h1>Sök film</h1>
+      <h1 className="visually-hidden">Sök film</h1>
       <Search />
     </>
   );

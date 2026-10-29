@@ -43,7 +43,7 @@ year, poster, genres in Swedish). Without it, movies are matched on normalized t
 The Swedish interface keeps film discovery list-based, with shareable search/filter URLs.
 Film pages show the aggregate once beside the review count; individual reviews retain both
 their normalized score and the publication's original rating. Mobile layouts keep full film
-titles visible, group labeled filters in two columns, and put the synopsis in a disclosure.
+titles visible and group labeled filters in two columns.
 Search distinguishes loading, no matches, and a failed request with a retry action.
 
 ## Data model

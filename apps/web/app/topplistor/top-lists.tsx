@@ -80,7 +80,7 @@ export function TopLists({ movies }: { movies: TopListMovie[] }) {
 
   if (!selection || !view)
     return (
-      <p className="muted" role="status">
+      <p className="muted caption" role="status">
         Laddar filmer…
       </p>
     );

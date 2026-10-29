@@ -28,23 +28,6 @@ export default async function MoviePage({ params }: Props) {
   const movie = getMovie(getDb(), slug);
   if (!movie) notFound();
   const showOriginalTitle = movie.originalTitle && movie.originalTitle !== movie.title;
-  const about = (
-    <>
-      {movie.overview ? <p className="overview">{movie.overview}</p> : null}
-      {movie.imdbId ? (
-        <p>
-          <a
-            href={`https://www.imdb.com/title/${movie.imdbId}/`}
-            className="quiet-link"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            IMDb ↗
-          </a>
-        </p>
-      ) : null}
-    </>
-  );
 
   return (
     <article>
@@ -63,13 +46,21 @@ export default async function MoviePage({ params }: Props) {
           </div>
         </div>
         {movie.overview || movie.imdbId ? (
-          <>
-            <div className="movie-about desktop-about">{about}</div>
-            <details className="movie-about mobile-about">
-              <summary>Om filmen{movie.imdbId ? " och IMDb" : ""}</summary>
-              {about}
-            </details>
-          </>
+          <div className="movie-about">
+            {movie.overview ? <p className="overview">{movie.overview}</p> : null}
+            {movie.imdbId ? (
+              <p>
+                <a
+                  href={`https://www.imdb.com/title/${movie.imdbId}/`}
+                  className="quiet-link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  IMDb ↗
+                </a>
+              </p>
+            ) : null}
+          </div>
         ) : null}
       </header>
 
