@@ -27,7 +27,6 @@ export default async function MoviePage({ params }: Props) {
   const { slug } = await params;
   const movie = getMovie(getDb(), slug);
   if (!movie) notFound();
-  const showOriginalTitle = movie.originalTitle && movie.originalTitle !== movie.title;
 
   return (
     <article>
@@ -36,7 +35,6 @@ export default async function MoviePage({ params }: Props) {
         <div className="movie-heading">
           <h1>{movie.title}</h1>
           {movie.year ? <p className="muted movie-year">{movie.year}</p> : null}
-          {showOriginalTitle ? <p className="muted">Originaltitel: {movie.originalTitle}</p> : null}
         </div>
         <div className="aggregate">
           <ScoreBadge score={movie.score} large />

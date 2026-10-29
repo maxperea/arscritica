@@ -269,9 +269,9 @@ main {
 }
 
 .score-large {
-  width: 4rem;
-  height: 4rem;
-  font-size: 1.75rem;
+  width: 3.5rem;
+  height: 3.5rem;
+  font-size: 1.5rem;
 }
 
 .score-high {
@@ -677,7 +677,8 @@ main {
   }
 
   .movie-header {
-    grid-template-columns: min(5rem, 25%) minmax(0, 1fr);
+    grid-template-columns: min(6.5rem, 32%) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
     gap: 0.75rem 1rem;
   }
 
@@ -711,9 +712,9 @@ main {
   }
 
   .score-large {
-    width: 3.375rem;
-    height: 3.375rem;
-    font-size: 1.5rem;
+    width: 2.875rem;
+    height: 2.875rem;
+    font-size: 1.25rem;
   }
 
   .movie-about {
@@ -788,8 +789,9 @@ main {
   }
 
   .score-large {
-    width: 3rem;
-    height: 3rem;
+    width: 2.625rem;
+    height: 2.625rem;
+    font-size: 1.125rem;
   }
 
   .movie-heading h1 {
