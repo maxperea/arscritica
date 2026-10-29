@@ -7,7 +7,8 @@ import { PaywallIcon } from "@/components/paywall-icon";
 import { ScoreBadge } from "@/components/score-badge";
 import { WatchProviders } from "@/components/watch-providers";
 import { getDb } from "@/lib/db";
-import { formatDate, formatRawScore, reviewCountLabel } from "@/lib/format";
+import { formatDate, formatRawScore, posterUrl, reviewCountLabel } from "@/lib/format";
+import { movieDescription, movieJsonLd, moviePageTitle, pageMetadata } from "@/lib/seo";
 import { slugParams } from "@/lib/static-params";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -20,7 +21,14 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  return { title: getMovie(getDb(), slug)?.title ?? "Filmen hittades inte" };
+  const movie = getMovie(getDb(), slug);
+  if (!movie) return { title: "Filmen hittades inte" };
+  return pageMetadata({
+    title: moviePageTitle(movie),
+    description: movieDescription(movie),
+    path: `/film/${slug}/`,
+    image: movie.posterPath ? posterUrl(movie.posterPath, "w500") : undefined,
+  });
 }
 
 export default async function MoviePage({ params }: Props) {
@@ -31,6 +39,10 @@ export default async function MoviePage({ params }: Props) {
 
   return (
     <article>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: movieJsonLd(movie, `/film/${slug}/`) }}
+      />
       <header className={`movie-header${movie.posterPath ? "" : " no-poster"}`}>
         {movie.posterPath ? <Poster path={movie.posterPath} title={movie.title} large /> : null}
         <div className="movie-heading">

@@ -2,8 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { listPublications } from "@arscritica/db";
 import { getDb } from "@/lib/db";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Publikationer" };
+export const metadata: Metadata = pageMetadata({
+  title: "Publikationer – svenska filmkritiker",
+  description:
+    "Svenska publikationer vars filmrecensioner samlas på Vox Critica, med antal recensioner och snittbetyg.",
+  path: "/publikationer/",
+});
 
 export default function PublicationsPage() {
   const publications = listPublications(getDb());

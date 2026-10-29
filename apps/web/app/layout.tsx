@@ -2,10 +2,12 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { SiteNav } from "@/components/site-nav";
+import { siteName, siteOrigin } from "@/lib/seo";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "Vox Critica", template: "%s – Vox Critica" },
+  metadataBase: new URL(siteOrigin),
+  title: { default: siteName, template: `%s | ${siteName}` },
   description: "Filmrecensioner från svenska publikationer, samlade på ett ställe.",
 };
 

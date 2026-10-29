@@ -5,6 +5,7 @@ import { getPublication, publicationSlugs } from "@arscritica/db";
 import { PaywallIcon } from "@/components/paywall-icon";
 import { getDb } from "@/lib/db";
 import { formatDate, formatRawScore, reviewCountLabel } from "@/lib/format";
+import { pageMetadata } from "@/lib/seo";
 import { slugParams } from "@/lib/static-params";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -17,7 +18,13 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  return { title: getPublication(getDb(), slug)?.name ?? "Publikationen hittades inte" };
+  const publication = getPublication(getDb(), slug);
+  if (!publication) return { title: "Publikationen hittades inte" };
+  return pageMetadata({
+    title: `${publication.name} – filmrecensioner och betyg`,
+    description: `Alla filmrecensioner från ${publication.name} på Vox Critica: ${reviewCountLabel(publication.reviewCount)} med betyg och länkar till originalen.`,
+    path: `/publikationer/${slug}/`,
+  });
 }
 
 export default async function PublicationPage({ params }: Props) {

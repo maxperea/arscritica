@@ -1,7 +1,17 @@
 import { bestMoviesRightNow, recentlyReviewedMovies } from "@arscritica/db";
 import Link from "next/link";
 import { MovieList } from "@/components/movie-list";
+import type { Metadata } from "next";
 import { getDb } from "@/lib/db";
+import { pageMetadata, siteName } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata({
+  title: `${siteName} – filmrecensioner från svensk press`,
+  absoluteTitle: true,
+  description:
+    "Betyg från svenska filmkritiker samlade på ett ställe. Se vilka filmer som får bäst betyg just nu och läs recensionerna.",
+  path: "/",
+});
 
 export default function HomePage() {
   const db = getDb();
