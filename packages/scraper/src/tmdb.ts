@@ -28,12 +28,14 @@ interface TmdbDetailsResult {
   genres?: TmdbGenre[];
   imdb_id?: string | null;
   overview?: string | null;
+  runtime?: number | null;
 }
 
 export interface TmdbMovieDetails {
   genres: string[];
   imdbId?: string;
   overview?: string;
+  runtime?: number;
 }
 
 interface TmdbWatchProvider {
@@ -109,6 +111,7 @@ export class TmdbClient implements MovieLookup {
       genres: (movie.genres ?? []).map((genre) => genre.name),
       imdbId: movie.imdb_id || undefined,
       overview: movie.overview?.trim() || undefined,
+      runtime: validRuntime(movie.runtime),
     };
   }
 
@@ -171,6 +174,14 @@ export class TmdbClient implements MovieLookup {
 }
 
 const romanNumerals: Record<string, string> = { ii: "2", iii: "3", iv: "4", v: "5" };
+
+const longestRuntime = 1000;
+
+function validRuntime(runtime: number | null | undefined): number | undefined {
+  return Number.isInteger(runtime) && runtime! > 0 && runtime! <= longestRuntime
+    ? runtime!
+    : undefined;
+}
 
 function comparableTitle(title: string): string {
   return normalizeTitle(title)

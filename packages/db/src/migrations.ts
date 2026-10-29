@@ -94,4 +94,8 @@ export const migrations: string[] = [
     AND substr(slug, -4) <> CAST(year AS TEXT)
     AND NOT EXISTS (SELECT 1 FROM movies other WHERE other.slug = substr(movies.slug, 1, length(movies.slug) - 4) || movies.year);
   `,
+  `
+  ALTER TABLE movies ADD COLUMN runtime INTEGER;
+  ALTER TABLE movies ADD COLUMN runtime_checked_at TEXT;
+  `,
 ];

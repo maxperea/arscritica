@@ -134,6 +134,12 @@ export function setMovieEnglishOverview(db: Database, movieId: number, overview:
   db.prepare("UPDATE movies SET overview_en = ? WHERE id = ?").run(overview, movieId);
 }
 
+export function setMovieRuntime(db: Database, movieId: number, runtime: number | undefined): void {
+  db.prepare(
+    "UPDATE movies SET runtime = ?, runtime_checked_at = datetime('now') WHERE id = ?",
+  ).run(runtime ?? null, movieId);
+}
+
 export function setMovieWatchProviders(
   db: Database,
   movieId: number,
@@ -229,16 +235,26 @@ export function moviesDueForWatchmode(db: Database): WatchmodeCandidate[] {
   );
 }
 
-export function tmdbMoviesMissingDetails(db: Database): { id: number; tmdbId: number }[] {
-  return allRows(
-    db.prepare(
-      `SELECT id, tmdb_id AS tmdbId FROM movies m
-       WHERE tmdb_id IS NOT NULL
-         AND (imdb_id IS NULL OR (overview IS NULL AND overview_en IS NULL)
-           OR NOT EXISTS (SELECT 1 FROM movie_genres g WHERE g.movie_id = m.id))`,
-    ),
-  );
+export interface DetailsCandidate {
+  id: number;
+  tmdbId: number;
+  runtimeOnly: boolean;
 }
+
+export function tmdbMoviesMissingDetails(db: Database): DetailsCandidate[] {
+  return allRows<{ id: number; tmdbId: number; runtimeOnly: number }>(
+    db.prepare(
+      `SELECT id, tmdb_id AS tmdbId, NOT (${missingOtherDetails}) AS runtimeOnly FROM movies m
+       WHERE tmdb_id IS NOT NULL
+         AND ((${missingOtherDetails})
+           OR runtime_checked_at IS NULL
+           OR (runtime IS NULL AND runtime_checked_at < datetime('now', '-30 days')))`,
+    ),
+  ).map((movie) => ({ ...movie, runtimeOnly: Boolean(movie.runtimeOnly) }));
+}
+
+const missingOtherDetails = `imdb_id IS NULL OR (overview IS NULL AND overview_en IS NULL)
+  OR NOT EXISTS (SELECT 1 FROM movie_genres g WHERE g.movie_id = m.id)`;
 
 export function reviewExists(db: Database, url: string): boolean {
   return getRow(db.prepare("SELECT 1 AS found FROM reviews WHERE url = ?"), url) !== undefined;

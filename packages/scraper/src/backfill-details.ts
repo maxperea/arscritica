@@ -1,15 +1,8 @@
 import path from "node:path";
 import { parseArgs } from "node:util";
-import {
-  openDatabase,
-  setMovieGenres,
-  setMovieImdbId,
-  setMovieEnglishOverview,
-  setMovieOverview,
-  tmdbMoviesMissingDetails,
-  type Database,
-} from "@arscritica/db";
-import { TmdbClient, type TmdbMovieDetails } from "./tmdb";
+import { openDatabase } from "@arscritica/db";
+import { backfillMovieDetails } from "./details";
+import { TmdbClient } from "./tmdb";
 
 const { values } = parseArgs({ options: { db: { type: "string" } } });
 
@@ -22,33 +15,13 @@ if (!tmdb) {
 const invocationDir = process.env.INIT_CWD ?? process.cwd();
 const db = openDatabase({ path: values.db ? path.resolve(invocationDir, values.db) : undefined });
 try {
-  const movies = tmdbMoviesMissingDetails(db);
-  let updated = 0;
-  for (const movie of movies) {
-    try {
-      const details = await tmdb.movieDetails(movie.tmdbId);
-      setMovieGenres(db, movie.id, details.genres);
-      setMovieImdbId(db, movie.id, details.imdbId);
-      await updateOverview(db, tmdb, movie, details);
-      if (details.genres.length || details.imdbId) updated++;
-    } catch (error) {
-      console.warn(`TMDB details lookup failed for movie ${movie.tmdbId}: ${String(error)}`);
-      process.exitCode = 1;
-    }
-  }
-  console.log(`Added details to ${updated} of ${movies.length} movies.`);
+  const result = await backfillMovieDetails(db, tmdb);
+  console.log(
+    `Added details to ${result.detailsUpdated} of ${result.candidates} movies. ` +
+      `Runtime found for ${result.runtimeFound}, unavailable for ${result.runtimeMissing}, ` +
+      `failed for ${result.failed}.`,
+  );
+  if (result.failed) process.exitCode = 1;
 } finally {
   db.close();
-}
-
-async function updateOverview(
-  db: Database,
-  tmdb: TmdbClient,
-  movie: { id: number; tmdbId: number },
-  details: TmdbMovieDetails,
-): Promise<void> {
-  if (details.overview) return setMovieOverview(db, movie.id, details.overview);
-  const english = await tmdb.englishOverview(movie.tmdbId);
-  if (english) setMovieEnglishOverview(db, movie.id, english);
-  else setMovieOverview(db, movie.id, "");
 }

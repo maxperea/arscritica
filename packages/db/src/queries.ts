@@ -47,6 +47,7 @@ export interface MovieDetail extends MovieSummary {
   tmdbId: number;
   imdbId: string | null;
   overview: string | null;
+  runtime: number | null;
   watchProviders: MovieWatchProvider[];
   reviews: MovieReview[];
 }
@@ -166,9 +167,10 @@ export function getMovie(db: Database, slug: string): MovieDetail | undefined {
     tmdbId: number;
     imdbId: string | null;
     overview: string | null;
+    runtime: number | null;
   }>(
     db.prepare(
-      "SELECT id, tmdb_id AS tmdbId, imdb_id AS imdbId, overview FROM movies WHERE slug = ?",
+      "SELECT id, tmdb_id AS tmdbId, imdb_id AS imdbId, overview, runtime FROM movies WHERE slug = ?",
     ),
     slug,
   );
@@ -214,6 +216,7 @@ export function getMovie(db: Database, slug: string): MovieDetail | undefined {
     tmdbId: details.tmdbId,
     imdbId: details.imdbId,
     overview: details.overview || null,
+    runtime: details.runtime,
     watchProviders,
     reviews: reviews.map((review) => ({
       ...review,

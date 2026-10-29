@@ -27,6 +27,7 @@ export default async function MoviePage({ params }: Props) {
   const { slug } = await params;
   const movie = getMovie(getDb(), slug);
   if (!movie) notFound();
+  const facts = [movie.year, movie.runtime ? `${movie.runtime} min` : null].filter(Boolean);
 
   return (
     <article>
@@ -34,7 +35,7 @@ export default async function MoviePage({ params }: Props) {
         {movie.posterPath ? <Poster path={movie.posterPath} title={movie.title} large /> : null}
         <div className="movie-heading">
           <h1>{movie.title}</h1>
-          {movie.year ? <p className="muted movie-year">{movie.year}</p> : null}
+          {facts.length ? <p className="muted movie-year">{facts.join(" · ")}</p> : null}
         </div>
         <div className="aggregate">
           <ScoreBadge score={movie.score} large />
