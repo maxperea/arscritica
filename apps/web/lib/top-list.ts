@@ -4,7 +4,7 @@ export const recentPeriod = "just-nu";
 export const allPeriod = "alla";
 export const recentDays = 90;
 
-const firstYear = 2024;
+const firstYear = 2010;
 const dayMs = 24 * 60 * 60 * 1000;
 const genreNames: Record<string, string | null> = { Music: "Musik", "TV-film": null };
 
