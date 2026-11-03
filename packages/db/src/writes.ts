@@ -226,6 +226,7 @@ export function moviesDueForWatchmode(db: Database): WatchmodeCandidate[] {
        JOIN current c ON c.movie_id = m.id
        LEFT JOIN reviewed r ON r.movie_id = m.id
        WHERE m.tmdb_id IS NOT NULL
+         AND r.latest >= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-3 years')
          AND (m.watchmode_checked_at IS NULL
            OR m.watchmode_checked_at < datetime('now', '-25 days')
            OR (m.watchmode_signature IS NOT c.signature
