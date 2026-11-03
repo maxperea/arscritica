@@ -16,6 +16,8 @@ export interface ScrapeOptions {
   movieLookup?: MovieLookup;
   since?: Date;
   limit?: number;
+  history?: boolean;
+  deadline?: Date;
   log?: (message: string) => void;
 }
 
@@ -29,12 +31,31 @@ export interface SourceResult {
 }
 
 export async function scrape(options: ScrapeOptions): Promise<SourceResult[]> {
+  if (options.history) {
+    const serialize = serialQueue();
+    return Promise.all(options.sources.map((source) => scrapeSource(source, options, serialize)));
+  }
   const results: SourceResult[] = [];
   for (const source of options.sources) results.push(await scrapeSource(source, options));
   return results;
 }
 
-async function scrapeSource(source: Source, options: ScrapeOptions): Promise<SourceResult> {
+type Serialize = <T>(task: () => Promise<T>) => Promise<T>;
+
+function serialQueue(): Serialize {
+  let tail: Promise<unknown> = Promise.resolve();
+  return (task) => {
+    const run = tail.then(task);
+    tail = run.catch(() => undefined);
+    return run;
+  };
+}
+
+async function scrapeSource(
+  source: Source,
+  options: ScrapeOptions,
+  serialize: Serialize = (task) => task(),
+): Promise<SourceResult> {
   const { db, fetcher, log = console.log } = options;
   const result: SourceResult = { source: source.slug, found: 0, added: 0, skipped: 0, failed: 0 };
   const publicationId = upsertPublication(db, {
@@ -50,7 +71,11 @@ async function scrapeSource(source: Source, options: ScrapeOptions): Promise<Sou
   try {
     urls = [
       ...new Set(
-        await source.listReviewUrls({ since, fetchText: (url) => fetcher.fetchText(url) }),
+        await source.listReviewUrls({
+          since,
+          exhaustive: options.history,
+          fetchText: (url) => fetcher.fetchText(url),
+        }),
       ),
     ];
   } catch (error) {
@@ -61,7 +86,16 @@ async function scrapeSource(source: Source, options: ScrapeOptions): Promise<Sou
   result.found = urls.length;
 
   const pending = urls.filter((url) => !reviewExists(db, url)).slice(0, options.limit);
-  for (const url of pending) {
+  if (options.history) log(`[${source.slug}] ${urls.length} listed, ${pending.length} new`);
+  for (const [index, url] of pending.entries()) {
+    if (options.deadline && Date.now() > options.deadline.getTime()) {
+      result.error = "deadline reached";
+      log(`[${source.slug}] stopping at the deadline with ${pending.length - index} left`);
+      break;
+    }
+    if (options.history && index > 0 && index % 100 === 0) {
+      log(`[${source.slug}] ${index}/${pending.length}: ${result.added} added`);
+    }
     try {
       const review = source.parseReview(url, await fetcher.fetchText(url));
       if (!review || !isValid(review)) {
@@ -69,17 +103,19 @@ async function scrapeSource(source: Source, options: ScrapeOptions): Promise<Sou
         log(`[${source.slug}] skipped ${url}`);
         continue;
       }
-      const movieId = await resolveMovieId(db, review, options.movieLookup);
-      insertReview(db, {
-        movieId,
-        publicationId,
-        url,
-        sourceTitle: review.title,
-        sourceYear: review.year,
-        rawScore: review.rawScore,
-        scaleMax: review.scaleMax,
-        critic: review.critic,
-        publishedAt: toIsoDateTime(review.publishedAt),
+      await serialize(async () => {
+        const movieId = await resolveMovieId(db, review, options.movieLookup);
+        insertReview(db, {
+          movieId,
+          publicationId,
+          url,
+          sourceTitle: review.title,
+          sourceYear: review.year,
+          rawScore: review.rawScore,
+          scaleMax: review.scaleMax,
+          critic: review.critic,
+          publishedAt: toIsoDateTime(review.publishedAt),
+        });
       });
       result.added++;
     } catch (error) {

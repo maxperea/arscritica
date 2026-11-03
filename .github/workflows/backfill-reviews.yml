@@ -1,0 +1,57 @@
+name: Backfill reviews
+
+on:
+  workflow_dispatch:
+    inputs:
+      sources:
+        description: Space-separated source slugs (empty for all)
+        required: false
+        default: ""
+      since:
+        description: Earliest publication date
+        required: false
+        default: "2010-01-01"
+      max-minutes:
+        description: Stop scraping after this many minutes
+        required: false
+        default: "300"
+
+concurrency:
+  group: scrape-and-deploy
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Restore database
+        run: bash scripts/data-branch.sh restore
+      - run: pnpm db:init
+      - name: Scrape history
+        continue-on-error: true
+        run: |
+          args=(--history --since "$SINCE" --max-minutes "$MAX_MINUTES")
+          for source in $SOURCES; do args+=(--source "$source"); done
+          pnpm scrape "${args[@]}"
+        env:
+          SOURCES: ${{ inputs.sources }}
+          SINCE: ${{ inputs.since }}
+          MAX_MINUTES: ${{ inputs.max-minutes }}
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      - name: Persist database
+        run: bash scripts/data-branch.sh persist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: database
+          path: data/arscritica.db
+          retention-days: 7

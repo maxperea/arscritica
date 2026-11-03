@@ -30,10 +30,10 @@ export const svt: Source = {
   name: "SVT Kulturnyheterna",
   url: `${BASE_URL}/kultur/`,
 
-  async listReviewUrls({ since, fetchText }) {
+  async listReviewUrls({ since, exhaustive, fetchText }) {
     const urls: string[] = [];
     let cursor = "0";
-    for (let page = 0; page < MAX_PAGES; page++) {
+    for (let page = 0; page < (exhaustive ? Infinity : MAX_PAGES); page++) {
       const response = JSON.parse(await fetchText(tagFeedUrl(cursor))) as TagFeedResponse;
       const feed = response.data?.page?.feed;
       if (!feed) throw new Error(`SVT tag feed failed: ${JSON.stringify(response.errors)}`);

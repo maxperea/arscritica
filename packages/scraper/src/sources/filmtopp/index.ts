@@ -77,9 +77,9 @@ export const filmtopp: Source = {
   name: "Filmtopp",
   url: "https://www.filmtopp.se/",
 
-  async listReviewUrls({ since, fetchText }) {
+  async listReviewUrls({ since, exhaustive, fetchText }) {
     const urls: string[] = [];
-    for (let page = 0; page < maxPages; page++) {
+    for (let page = 0; page < (exhaustive ? Infinity : maxPages); page++) {
       const pageUrl = `${listUrl}?page=${page}`;
       const $ = load(await fetchText(pageUrl));
       const items = $(".search-results__item").toArray();

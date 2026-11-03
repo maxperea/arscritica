@@ -35,9 +35,9 @@ export const filmbladet: Source = {
   name: "Filmbladet",
   url: `${BASE_URL}/`,
 
-  async listReviewUrls({ since, fetchText }) {
+  async listReviewUrls({ since, exhaustive, fetchText }) {
     const urls: string[] = [];
-    for (let page = 1; page <= MAX_PAGES; page++) {
+    for (let page = 1; page <= (exhaustive ? Infinity : MAX_PAGES); page++) {
       const $ = load(await fetchText(page === 1 ? LIST_URL : `${LIST_URL}&sida=${page}`));
       const teasers = $(".reviews-grid a.rev")
         .toArray()

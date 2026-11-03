@@ -20,7 +20,7 @@ export async function resolveMovieId(
   const tmdbMovie = await lookupSafely(review, reviewedYear, lookup);
   if (!tmdbMovie) {
     return (
-      findByTitle(db, review.title, review.year, false) ??
+      findByTitle(db, review.title, review.year, false, reviewedYear) ??
       insertMovie(db, { title: review.title, year: review.year })
     );
   }
@@ -53,11 +53,13 @@ function findByTitle(
   title: string,
   year: number | undefined,
   untrackedOnly: boolean,
+  reviewedYear?: number,
 ): number | undefined {
   const candidates = findMoviesByTitle(db, title).filter(
     (movie) =>
       (!untrackedOnly || movie.tmdbId === null) &&
-      (year === undefined || movie.year === null || movie.year === year),
+      (year === undefined || movie.year === null || movie.year === year) &&
+      (reviewedYear === undefined || movie.year === null || movie.year <= reviewedYear + 1),
   );
   const sameYear = candidates.filter((movie) => year !== undefined && movie.year === year);
   const pool = sameYear.length ? sameYear : candidates;

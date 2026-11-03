@@ -9,6 +9,7 @@ export interface ScrapedReview {
 
 export interface ListContext {
   since?: Date;
+  exhaustive?: boolean;
   fetchText(url: string): Promise<string>;
 }
 

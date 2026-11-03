@@ -11,6 +11,8 @@ const { values } = parseArgs({
     source: { type: "string", multiple: true },
     since: { type: "string" },
     limit: { type: "string" },
+    history: { type: "boolean", default: false },
+    "max-minutes": { type: "string" },
     db: { type: "string" },
   },
 });
@@ -26,7 +28,9 @@ const selected = requested.length
   ? sources.filter((source) => requested.includes(source.slug))
   : sources;
 
-const since = values.since ? new Date(values.since) : undefined;
+const historyStart = "2010-01-01";
+const sinceText = values.since ?? (values.history ? historyStart : undefined);
+const since = sinceText ? new Date(sinceText) : undefined;
 if (since && Number.isNaN(since.getTime())) {
   console.error(`Invalid --since date: ${values.since}`);
   process.exit(1);
@@ -37,6 +41,13 @@ if (limit !== undefined && !(Number.isInteger(limit) && limit > 0)) {
   console.error(`Invalid --limit: ${values.limit}`);
   process.exit(1);
 }
+
+const maxMinutes = values["max-minutes"] ? Number(values["max-minutes"]) : undefined;
+if (maxMinutes !== undefined && !(maxMinutes > 0)) {
+  console.error(`Invalid --max-minutes: ${values["max-minutes"]}`);
+  process.exit(1);
+}
+const deadline = maxMinutes ? new Date(Date.now() + maxMinutes * 60_000) : undefined;
 
 const movieLookup = TmdbClient.fromEnv();
 if (!movieLookup) console.warn("TMDB_API_KEY is not set; matching movies by title and year only.");
@@ -52,6 +63,8 @@ try {
     movieLookup,
     since,
     limit,
+    history: values.history,
+    deadline,
   });
   if (results.length) console.table(results);
   if (results.some((result) => result.error)) process.exitCode = 1;

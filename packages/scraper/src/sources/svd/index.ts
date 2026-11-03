@@ -19,9 +19,9 @@ export const svd: Source = {
   url: "https://www.svd.se/tagg/filmrecensioner",
   paywalled: true,
 
-  async listReviewUrls({ since, fetchText }) {
+  async listReviewUrls({ since, exhaustive, fetchText }) {
     const urls: string[] = [];
-    for (let page = 1; page <= MAX_PAGES; page++) {
+    for (let page = 1; page <= (exhaustive ? Infinity : MAX_PAGES); page++) {
       const $ = load(await fetchText(page === 1 ? LIST_URL : `${LIST_URL}?page=${page}`));
       const teasers = $("article a.teaser")
         .toArray()
