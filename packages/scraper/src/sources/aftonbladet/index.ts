@@ -1,9 +1,15 @@
 import { load, type CheerioAPI } from "cheerio";
-import type { Source } from "../../source";
+import type { ScrapedReview, Source } from "../../source";
 
 const LIST_URL = "https://www.aftonbladet.se/tagg/filmrecensioner";
 const FILM_ARTICLE = /^https:\/\/www\.aftonbladet\.se\/nojesbladet\/film\/a\//;
 const MAX_PAGES = 20;
+const MAX_GRADES_IN_REVIEW = 2;
+const GRADE_LABEL_PATTERN = /^Betyg (\d) av (\d)$/;
+const LIST_PATTERN = /\blista\b/i;
+const LEAD_GRADE_PATTERN = /\bså många\b|^till\b/i;
+
+type Selection = ReturnType<CheerioAPI>;
 
 interface LinkedData {
   "@type"?: string;
@@ -40,9 +46,10 @@ export const aftonbladet: Source = {
     const $ = load(html);
     const linkedData = readLinkedData($);
     const article = linkedData.find((entry) => entry["@type"] === "NewsArticle");
+    if (article?.articleSection !== "Film") return null;
     const review = linkedData.find((entry) => entry["@type"] === "Review");
     const rating = review?.reviewRating;
-    if (article?.articleSection !== "Film" || rating?.ratingValue === undefined) return null;
+    if (rating?.ratingValue === undefined) return parseGradeLabel($, article);
 
     const title = factBoxTitle($) ?? cleanItemName(review?.itemReviewed?.name ?? "");
     if (!title) return null;
@@ -56,6 +63,74 @@ export const aftonbladet: Source = {
     };
   },
 };
+
+function parseGradeLabel($: CheerioAPI, article: LinkedData): ScrapedReview | null {
+  const grades = $(
+    '.article-intro svg[aria-label^="Betyg"], .article-body svg[aria-label^="Betyg"]',
+  ).filter((_, grade) => !LEAD_GRADE_PATTERN.test($(grade).closest("p").text().trim()));
+  if (
+    grades.length > MAX_GRADES_IN_REVIEW ||
+    LIST_PATTERN.test(`${$("title").text()} ${$("h1").text()}`)
+  ) {
+    return null;
+  }
+  const label = GRADE_LABEL_PATTERN.exec(grades.first().attr("aria-label") ?? "");
+  const title = label && gradedTitle($, grades.first().closest("p"));
+  if (!label || !title) return null;
+  return {
+    title,
+    rawScore: Number(label[1]) - 1,
+    scaleMax: Number(label[2]) - 1,
+    critic: article.author?.[0]?.name,
+    publishedAt: article.datePublished,
+  };
+}
+
+function gradedTitle($: CheerioAPI, grade: Selection): string | undefined {
+  const previous = grade.prev();
+  const next = grade.next();
+  const candidates = [
+    quoted(grade.text()),
+    previous.is("h2") && !/^fakta$/i.test(previous.text().trim()) ? previous.text() : undefined,
+    next.is("h2") ? next.text() : undefined,
+    grade.text().trim() ? firstLine(grade) : firstLine(grade.next("p")),
+    titleFromHeadline($("title").text()),
+  ];
+  return candidates
+    .map((candidate) => candidate?.trim().replace(/^[”"“](.+)[”"“]$/, "$1"))
+    .find(Boolean);
+}
+
+function firstLine(paragraph: Selection): string | undefined {
+  const line = (paragraph.html() ?? "")
+    .split(/<br\s*\/?>/)
+    .map((html) =>
+      load(html)
+        .text()
+        .split(/\s*\bRegi\b/)[0]!
+        .trim(),
+    )
+    .find(Boolean);
+  return line && !LEAD_GRADE_PATTERN.test(line) ? line : undefined;
+}
+
+function titleFromHeadline(headline: string): string | undefined {
+  const text = headline
+    .replace(/\s+/g, " ")
+    .replace(/^\(\+\)\s*/, "")
+    .trim();
+  return (
+    quoted(text) ??
+    /^(?:film)?recension(?: av)?:?\s+(.+?)(?:\s+[–-]\s.*)?$/i.exec(text)?.[1] ??
+    /^så bra är\s+(.+)$/i.exec(text)?.[1] ??
+    /^(.+?)\s+[–-]\s+här är recensionen$/i.exec(text)?.[1]
+  );
+}
+
+function quoted(text: string): string | undefined {
+  const matches = [...text.matchAll(/[”"“]([^”"“]+)[”"“]/g)];
+  return matches.length === 1 ? matches[0]![1] : undefined;
+}
 
 function readLinkedData($: CheerioAPI): LinkedData[] {
   return $('script[type="application/ld+json"]')
