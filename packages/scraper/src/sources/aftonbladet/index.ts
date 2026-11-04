@@ -7,7 +7,9 @@ const MAX_PAGES = 20;
 const MAX_GRADES_IN_REVIEW = 2;
 const GRADE_LABEL_PATTERN = /^Betyg (\d) av (\d)$/;
 const LIST_PATTERN = /\blista\b/i;
-const LEAD_GRADE_PATTERN = /\bså många\b|^till\b/i;
+const NOT_A_TITLE_PATTERN =
+  /^([Rr]egisserad|[A-ZÅÄÖ]{4,}\s+[A-ZÅÄÖ][a-zåäö])|\bplus\b|\?$|^.{81,}$/;
+const LEAD_GRADE_PATTERN = /\b(så|hur) många\b|^till\b/i;
 
 type Selection = ReturnType<CheerioAPI>;
 
@@ -74,8 +76,10 @@ function parseGradeLabel($: CheerioAPI, article: LinkedData): ScrapedReview | nu
   ) {
     return null;
   }
-  const label = GRADE_LABEL_PATTERN.exec(grades.first().attr("aria-label") ?? "");
-  const title = label && gradedTitle($, grades.first().closest("p"));
+  const factBoxGrade = grades.filter((_, grade) => $(grade).closest("[class*=factbox]").length > 0);
+  const grade = factBoxGrade.length ? factBoxGrade.first() : grades.first();
+  const label = GRADE_LABEL_PATTERN.exec(grade.attr("aria-label") ?? "");
+  const title = label && gradedTitle($, grade.closest("p"));
   if (!label || !title) return null;
   return {
     title,
@@ -97,8 +101,14 @@ function gradedTitle($: CheerioAPI, grade: Selection): string | undefined {
     titleFromHeadline($("title").text()),
   ];
   return candidates
-    .map((candidate) => candidate?.trim().replace(/^[”"“](.+)[”"“]$/, "$1"))
-    .find(Boolean);
+    .map((candidate) =>
+      candidate
+        ?.split("\n")[0]!
+        .split(/\s*\bRegi\b/)[0]!
+        .trim()
+        .replace(/^[”"“](.+)[”"“]$/, "$1"),
+    )
+    .find((candidate) => candidate && !NOT_A_TITLE_PATTERN.test(candidate));
 }
 
 function firstLine(paragraph: Selection): string | undefined {
