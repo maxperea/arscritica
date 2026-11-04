@@ -9,6 +9,7 @@ const GRADE_LABEL_PATTERN = /^Betyg (\d) av (\d)$/;
 const LIST_PATTERN = /\blista\b/i;
 const NOT_A_TITLE_PATTERN =
   /^([Rr]egisserad|[A-ZÅÄÖ]{4,}\s+[A-ZÅÄÖ][a-zåäö])|\bplus\b|\?$|^.{81,}$/;
+const GENRE_LABEL_PATTERN = /^[A-ZÅÄÖ\s/-]{4,}$/;
 const LEAD_GRADE_PATTERN = /\b(så|hur) många\b|^till\b/i;
 
 type Selection = ReturnType<CheerioAPI>;
@@ -97,7 +98,7 @@ function gradedTitle($: CheerioAPI, grade: Selection): string | undefined {
     quoted(grade.text()),
     previous.is("h2") && !/^fakta$/i.test(previous.text().trim()) ? previous.text() : undefined,
     next.is("h2") ? next.text() : undefined,
-    grade.text().trim() ? firstLine(grade) : firstLine(grade.next("p")),
+    grade.text().trim() ? firstLine(grade) : firstLine(paragraphAfter(grade)),
     titleFromHeadline($("title").text()),
   ];
   return candidates
@@ -111,6 +112,11 @@ function gradedTitle($: CheerioAPI, grade: Selection): string | undefined {
     .find((candidate) => candidate && !NOT_A_TITLE_PATTERN.test(candidate));
 }
 
+function paragraphAfter(grade: Selection): Selection {
+  const next = grade.next("p");
+  return GENRE_LABEL_PATTERN.test(next.text().trim()) ? next.next("p") : next;
+}
+
 function firstLine(paragraph: Selection): string | undefined {
   const line = (paragraph.html() ?? "")
     .split(/<br\s*\/?>/)
@@ -120,7 +126,7 @@ function firstLine(paragraph: Selection): string | undefined {
         .split(/\s*\bRegi\b/)[0]!
         .trim(),
     )
-    .find(Boolean);
+    .find((text) => text && !GENRE_LABEL_PATTERN.test(text));
   return line && !LEAD_GRADE_PATTERN.test(line) ? line : undefined;
 }
 
