@@ -4,8 +4,29 @@ import type { MusicSource, ScrapedAlbumReview } from "../../source";
 const LIST_URL = "https://www.aftonbladet.se/tagg/skivrecensioner";
 const MUSIC_ARTICLE = /^https:\/\/www\.aftonbladet\.se\/nojesbladet\/musik\/a\//;
 const MAX_PAGES = 10;
-const ITEM_NAME_PATTERN = /^(.+?):\s*(.+?)\s*[-–]\s*Recension$/;
+const QUOTED_TITLE = '([”"“][^”"“]+[”"“])';
+const NAME_PATTERNS: { pattern: RegExp; titleFirst: boolean }[] = [
+  {
+    pattern: new RegExp(`^recension:?\\s+(.+?)\\s*[-–]\\s*${QUOTED_TITLE}$`, "i"),
+    titleFirst: false,
+  },
+  {
+    pattern: new RegExp(`^recension:?\\s+${QUOTED_TITLE}\\s*[-–]\\s*(.+)$`, "i"),
+    titleFirst: true,
+  },
+  {
+    pattern: new RegExp(`^${QUOTED_TITLE}\\s+(?:med|av)\\s+(.+?)\\s*[-–]\\s*recension\\b.*$`, "i"),
+    titleFirst: true,
+  },
+  { pattern: new RegExp(`^([^:”"“]+?):\\s*${QUOTED_TITLE}(?:\\s*[-–].*)?$`), titleFirst: false },
+  {
+    pattern: new RegExp(`^([^:”"“]+?)\\s+${QUOTED_TITLE}\\s*[-–]\\s*recension\\b.*$`, "i"),
+    titleFirst: false,
+  },
+  { pattern: /^(.+?):\s*(.+?)\s*[-–]\s*recension\b.*$/i, titleFirst: false },
+];
 const QUOTE_PATTERN = /[”"“]/;
+const PROSE_ARTIST_PATTERN = /\b(nya|album|albumet|skivan|släpper|recension)\b/i;
 const QUOTED_PATTERN = /^[”"“](.+)[”"“]$/;
 const ALBUM_LABELS = new Set(["ALBUM", "EP"]);
 const LABEL_PATTERN = /^([A-ZÅÄÖ]{2,})\s/;
@@ -65,7 +86,7 @@ export const aftonbladet: MusicSource = {
   parseReview(_url, html) {
     const $ = load(html);
     const linkedData = readLinkedData($);
-    const article = linkedData.find((entry) => entry["@type"] === "NewsArticle");
+    const article = linkedData.find((entry) => entry["@type"]?.endsWith("NewsArticle"));
     if (article?.articleSection !== "Musik") return null;
     const review = linkedData.find((entry) => entry["@type"] === "Review");
     if (!hasAlbumLabel(review?.reviewBody ?? article.description ?? "")) return null;
@@ -89,17 +110,22 @@ function hasAlbumLabel(description: string): boolean {
 }
 
 function parseItemName(name: string): Pick<ScrapedAlbumReview, "artist" | "title"> | null {
-  const match = ITEM_NAME_PATTERN.exec(name.replace(/\s+/g, " ").trim());
-  if (!match) return null;
-  const artist = match[1]!.trim();
-  const quotedTitle = QUOTED_PATTERN.exec(match[2]!)?.[1];
-  const title = (quotedTitle ?? match[2]!).trim();
+  const text = name.replace(/\s+/g, " ").trim();
+  const parsed = NAME_PATTERNS.map(({ pattern, titleFirst }) => {
+    const match = pattern.exec(text);
+    return match && (titleFirst ? [match[2]!, match[1]!] : [match[1]!, match[2]!]);
+  }).find(Boolean);
+  if (!parsed) return null;
+  const artist = parsed[0]!.trim();
+  const quotedTitle = QUOTED_PATTERN.exec(parsed[1]!)?.[1];
+  const title = (quotedTitle ?? parsed[1]!).trim();
   if (
     !artist ||
     !title ||
     QUOTE_PATTERN.test(title) ||
     QUOTE_PATTERN.test(artist) ||
     VARIOUS_ARTISTS_PATTERN.test(artist) ||
+    PROSE_ARTIST_PATTERN.test(artist) ||
     NOT_AN_ALBUM_PATTERN.test(title)
   ) {
     return null;

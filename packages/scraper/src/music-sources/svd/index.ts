@@ -6,6 +6,7 @@ const ARTICLE_URL = /^https:\/\/www\.svd\.se\/a\//;
 const NOT_A_REVIEW_URL = /^https:\/\/www\.svd\.se\/a\/gwAJV1\//;
 const MAX_PAGES = 3;
 const HEADLINE_PATTERN = /^Recension:\s*[”"“](.+?)[”"“]\s+av\s+(.+)$/;
+const ARTIST_FIRST_HEADLINE_PATTERN = /^Recension:\s*(.+?)\s+[–-]\s+[”"“]?(.+?)[”"“]?$/;
 const VARIOUS_ARTISTS_PATTERN = /^(diverse|blandade|various)\s+artist(er|s)$|^v\/a$/i;
 const NOT_AN_ALBUM_PATTERN =
   /\b(live|singel|box|boxen|samling|samlingen|samlingsbox|archives?|arkiv|volume|vol\.|deluxe|remaster(ed)?|greatest hits|best of|anniversary|jubileumsutgåva|nyutgåva|återutgåva|lost albums)\b/i;
@@ -65,7 +66,7 @@ export const svd: MusicSource = {
     const metadata = readMetadata($);
     const headline = clean(review?.headline ?? article?.headline ?? "");
     const artist = clean(
-      album.byArtist?.name ?? metadata.get("Artist") ?? artistFromHeadline(headline, title) ?? "",
+      album.byArtist?.name || metadata.get("Artist") || artistFromHeadline(headline, title) || "",
     );
     const publishedAt = review?.datePublished ?? article?.datePublished;
     const releaseYear = Number(album.copyrightYear ?? metadata.get("År"));
@@ -101,7 +102,9 @@ function readMetadata($: CheerioAPI): Map<string, string> {
 
 function artistFromHeadline(headline: string, title: string): string | undefined {
   const match = HEADLINE_PATTERN.exec(headline);
-  return match?.[1] === title ? match[2] : undefined;
+  if (match?.[1] === title) return match[2];
+  const artistFirst = ARTIST_FIRST_HEADLINE_PATTERN.exec(headline);
+  return artistFirst?.[2] === title ? artistFirst[1] : undefined;
 }
 
 function isOldRelease(releaseYear: number, publishedAt: string | undefined): boolean {
