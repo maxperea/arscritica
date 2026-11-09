@@ -170,7 +170,7 @@ export function getArtist(db: Database, slug: string): ArtistDetail | undefined 
 
 export function listMusicPublications(db: Database): PublicationSummary[] {
   return allRows<PublicationSummary>(
-    db.prepare(`${publicationSummarySelect} GROUP BY p.id ORDER BY p.name`),
+    db.prepare(`${publicationSummarySelect} GROUP BY p.id HAVING COUNT(r.id) > 0 ORDER BY p.name`),
   ).map((publication) => ({ ...publication, paywalled: Boolean(publication.paywalled) }));
 }
 
@@ -213,9 +213,7 @@ export function artistSlugs(db: Database): string[] {
 }
 
 export function musicPublicationSlugs(db: Database): string[] {
-  return allRows<{ slug: string }>(db.prepare("SELECT slug FROM music_publications")).map(
-    (row) => row.slug,
-  );
+  return listMusicPublications(db).map((publication) => publication.slug);
 }
 
 export function albumSearchIndex(db: Database): AlbumSummary[] {
