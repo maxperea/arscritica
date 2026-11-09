@@ -5,29 +5,18 @@ import {
   upsertPublication,
   type Database,
 } from "@arscritica/db";
+import { collectReviews, type CollectOptions, type SourceResult } from "./collect";
 import { resolveMovieId } from "./matcher";
-import type { Fetcher, ScrapedReview, Source } from "./source";
+import type { ScrapedReview, Source } from "./source";
+
+export type { SourceResult } from "./collect";
 import type { MovieLookup } from "./tmdb";
 
-export interface ScrapeOptions {
+export interface ScrapeOptions extends CollectOptions {
   db: Database;
   sources: Source[];
-  fetcher: Fetcher;
   movieLookup?: MovieLookup;
   since?: Date;
-  limit?: number;
-  history?: boolean;
-  deadline?: Date;
-  log?: (message: string) => void;
-}
-
-export interface SourceResult {
-  source: string;
-  found: number;
-  added: number;
-  skipped: number;
-  failed: number;
-  error?: string;
 }
 
 export async function scrape(options: ScrapeOptions): Promise<SourceResult[]> {
@@ -40,9 +29,9 @@ export async function scrape(options: ScrapeOptions): Promise<SourceResult[]> {
   return results;
 }
 
-type Serialize = <T>(task: () => Promise<T>) => Promise<T>;
+export type Serialize = <T>(task: () => Promise<T>) => Promise<T>;
 
-function serialQueue(): Serialize {
+export function serialQueue(): Serialize {
   let tail: Promise<unknown> = Promise.resolve();
   return (task) => {
     const run = tail.then(task);
@@ -56,8 +45,7 @@ async function scrapeSource(
   options: ScrapeOptions,
   serialize: Serialize = (task) => task(),
 ): Promise<SourceResult> {
-  const { db, fetcher, log = console.log } = options;
-  const result: SourceResult = { source: source.slug, found: 0, added: 0, skipped: 0, failed: 0 };
+  const { db } = options;
   const publicationId = upsertPublication(db, {
     slug: source.slug,
     name: source.name,
@@ -65,45 +53,12 @@ async function scrapeSource(
     paywalled: source.paywalled,
   });
   const latest = latestReviewDate(db, publicationId);
-  const since = options.since ?? (latest ? new Date(latest) : undefined);
-
-  let urls: string[];
-  try {
-    urls = [
-      ...new Set(
-        await source.listReviewUrls({
-          since,
-          exhaustive: options.history,
-          fetchText: (url) => fetcher.fetchText(url),
-        }),
-      ),
-    ];
-  } catch (error) {
-    result.error = String(error);
-    log(`[${source.slug}] listing failed: ${result.error}`);
-    return result;
-  }
-  result.found = urls.length;
-
-  const pending = urls.filter((url) => !reviewExists(db, url)).slice(0, options.limit);
-  if (options.history) log(`[${source.slug}] ${urls.length} listed, ${pending.length} new`);
-  for (const [index, url] of pending.entries()) {
-    if (options.deadline && Date.now() > options.deadline.getTime()) {
-      result.error = "deadline reached";
-      log(`[${source.slug}] stopping at the deadline with ${pending.length - index} left`);
-      break;
-    }
-    if (options.history && index > 0 && index % 100 === 0) {
-      log(`[${source.slug}] ${index}/${pending.length}: ${result.added} added`);
-    }
-    try {
-      const review = source.parseReview(url, await fetcher.fetchText(url));
-      if (!review || !isValid(review)) {
-        result.skipped++;
-        log(`[${source.slug}] skipped ${url}`);
-        continue;
-      }
-      await serialize(async () => {
+  return collectReviews(source, options, {
+    since: options.since ?? (latest ? new Date(latest) : undefined),
+    exists: (url) => reviewExists(db, url),
+    isValid,
+    save: (url, review) =>
+      serialize(async () => {
         const movieId = await resolveMovieId(db, review, options.movieLookup);
         insertReview(db, {
           movieId,
@@ -116,14 +71,8 @@ async function scrapeSource(
           critic: review.critic,
           publishedAt: toIsoDateTime(review.publishedAt),
         });
-      });
-      result.added++;
-    } catch (error) {
-      result.failed++;
-      log(`[${source.slug}] failed ${url}: ${String(error)}`);
-    }
-  }
-  return result;
+      }),
+  });
 }
 
 function isValid(review: ScrapedReview): boolean {
@@ -137,7 +86,7 @@ function isValid(review: ScrapedReview): boolean {
   );
 }
 
-function toIsoDateTime(value: string | undefined): string | undefined {
+export function toIsoDateTime(value: string | undefined): string | undefined {
   if (!value) return undefined;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
