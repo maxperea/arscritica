@@ -8,13 +8,18 @@ const firstYear = 2010;
 const dayMs = 24 * 60 * 60 * 1000;
 const genreNames: Record<string, string | null> = { Music: "Musik", "TV-film": null };
 
+interface Dated {
+  year: number | null;
+  firstReviewedAt: string;
+}
+
 export interface Genre {
   name: string;
   slug: string;
   count: number;
 }
 
-export function periods(movies: TopListMovie[]): string[] {
+export function periods(movies: Dated[]): string[] {
   const years = [...new Set(movies.map(releaseYear))]
     .filter((year) => year >= firstYear)
     .sort((a, b) => b - a)
@@ -28,7 +33,7 @@ export function periodLabel(period: string): string {
   return period;
 }
 
-export function periodMovies(movies: TopListMovie[], period: string, now: number): TopListMovie[] {
+export function periodMovies<T extends Dated>(movies: T[], period: string, now: number): T[] {
   return movies.filter((movie) => inPeriod(movie, period, now));
 }
 
@@ -56,7 +61,7 @@ export function genreSlug(name: string): string {
     .replace(/^-|-$/g, "");
 }
 
-function inPeriod(movie: TopListMovie, period: string, now: number): boolean {
+function inPeriod(movie: Dated, period: string, now: number): boolean {
   if (period === allPeriod) return true;
   if (period === recentPeriod) {
     const recentlyReviewed = now - Date.parse(movie.firstReviewedAt) <= recentDays * dayMs;
@@ -65,6 +70,6 @@ function inPeriod(movie: TopListMovie, period: string, now: number): boolean {
   return releaseYear(movie).toString() === period;
 }
 
-function releaseYear(movie: TopListMovie): number {
+function releaseYear(movie: Dated): number {
   return movie.year ?? Number(movie.firstReviewedAt.slice(0, 4));
 }

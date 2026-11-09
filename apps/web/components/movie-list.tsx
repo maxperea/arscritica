@@ -9,18 +9,24 @@ export function MovieList({ movies }: { movies: MovieSummary[] }) {
     <ul className="list movie-list">
       {movies.map((movie) => (
         <li key={movie.slug}>
-          <Link href={`/film/${movie.slug}/`} className="movie-link">
-            <Poster path={movie.posterPath} title={movie.title} decorative />
-            <span className="item-body">
-              <span className="item-title">{movie.title}</span>
-              <span className="item-meta muted">
-                {[movie.year, reviewCountLabel(movie.reviewCount)].filter(Boolean).join(" · ")}
-              </span>
-            </span>
-            <ScoreBadge score={movie.score} />
-          </Link>
+          <MovieLink movie={movie} />
         </li>
       ))}
     </ul>
+  );
+}
+
+export function MovieLink({ movie, label }: { movie: MovieSummary; label?: string }) {
+  return (
+    <Link href={`/film/${movie.slug}/`} className="movie-link">
+      <Poster path={movie.posterPath} title={movie.title} decorative />
+      <span className="item-body">
+        <span className="item-title">{movie.title}</span>
+        <span className="item-meta muted">
+          {[label, movie.year, reviewCountLabel(movie.reviewCount)].filter(Boolean).join(" · ")}
+        </span>
+      </span>
+      <ScoreBadge score={movie.score} />
+    </Link>
   );
 }
