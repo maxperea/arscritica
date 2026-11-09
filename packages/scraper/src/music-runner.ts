@@ -42,7 +42,7 @@ async function scrapeSource(
   });
   const latest = latestAlbumReviewDate(db, publicationId);
   return collectReviews(source, options, {
-    since: options.since ?? (latest ? new Date(latest) : undefined),
+    since: options.since ?? (latest ? new Date(latest) : defaultSince(options.history)),
     exists: (url) => albumReviewExists(db, url),
     isValid,
     save: (url, review) =>
@@ -62,6 +62,13 @@ async function scrapeSource(
         });
       }),
   });
+}
+
+function defaultSince(history: boolean | undefined): Date | undefined {
+  if (history) return undefined;
+  const since = new Date();
+  since.setUTCFullYear(since.getUTCFullYear() - 1);
+  return since;
 }
 
 function isValid(review: ScrapedAlbumReview): boolean {
