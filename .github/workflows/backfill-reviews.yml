@@ -11,6 +11,10 @@ on:
         description: Earliest publication date
         required: false
         default: "2010-01-01"
+      music:
+        description: Backfill album reviews instead of film reviews
+        type: boolean
+        default: false
       max-minutes:
         description: Stop scraping after this many minutes
         required: false
@@ -41,10 +45,12 @@ jobs:
         continue-on-error: true
         run: |
           args=(--history --since "$SINCE" --max-minutes "$MAX_MINUTES")
+          if [ "$MUSIC" = "true" ]; then args+=(--music); fi
           for source in $SOURCES; do args+=(--source "$source"); done
           pnpm scrape "${args[@]}"
         env:
           SOURCES: ${{ inputs.sources }}
+          MUSIC: ${{ inputs.music }}
           SINCE: ${{ inputs.since }}
           MAX_MINUTES: ${{ inputs.max-minutes }}
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
