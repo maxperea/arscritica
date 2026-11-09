@@ -1,0 +1,34 @@
+{
+  "release-groups": [
+    {
+      "id": "be44ea91-9ae6-4175-81bc-23d8426926ca",
+      "title": "Honey",
+      "primary-type": "Single",
+      "first-release-date": "2018-09-26",
+      "artist-credit": [
+        {
+          "name": "Robyn",
+          "artist": {
+            "id": "5a8e07d5-d932-4484-a7f7-e700793a9c94",
+            "name": "Robyn"
+          }
+        }
+      ]
+    },
+    {
+      "id": "6f46d5e4-1e46-4480-b120-d04b37145f7f",
+      "title": "Honey",
+      "primary-type": "Album",
+      "first-release-date": "2018-10-26",
+      "artist-credit": [
+        {
+          "name": "Robyn",
+          "artist": {
+            "id": "5a8e07d5-d932-4484-a7f7-e700793a9c94",
+            "name": "Robyn"
+          }
+        }
+      ]
+    }
+  ]
+}

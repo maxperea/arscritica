@@ -1,0 +1,15 @@
+{
+  "images": [
+    {
+      "front": true,
+      "image": "http://coverartarchive.org/release/72c8191a-0de2-477a-8332-44fead8ff10e/21673502612.jpg",
+      "thumbnails": {
+        "1200": "http://coverartarchive.org/release/72c8191a-0de2-477a-8332-44fead8ff10e/21673502612-1200.jpg",
+        "250": "http://coverartarchive.org/release/72c8191a-0de2-477a-8332-44fead8ff10e/21673502612-250.jpg",
+        "500": "http://coverartarchive.org/release/72c8191a-0de2-477a-8332-44fead8ff10e/21673502612-500.jpg",
+        "large": "http://coverartarchive.org/release/72c8191a-0de2-477a-8332-44fead8ff10e/21673502612-500.jpg",
+        "small": "http://coverartarchive.org/release/72c8191a-0de2-477a-8332-44fead8ff10e/21673502612-250.jpg"
+      }
+    }
+  ]
+}

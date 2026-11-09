@@ -1,0 +1,40 @@
+{
+  "releases": [
+    {
+      "status": "Official",
+      "date": "2018-12-14",
+      "media": [
+        {
+          "track-count": 9
+        }
+      ]
+    },
+    {
+      "status": "Official",
+      "date": "2018-10-26",
+      "media": [
+        {
+          "track-count": 9
+        }
+      ]
+    },
+    {
+      "status": "Official",
+      "date": "2018-10-26",
+      "media": [
+        {
+          "track-count": 9
+        }
+      ]
+    },
+    {
+      "status": "Official",
+      "date": "2018-10-26",
+      "media": [
+        {
+          "track-count": 9
+        }
+      ]
+    }
+  ]
+}
