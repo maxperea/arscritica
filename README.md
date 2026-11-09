@@ -1,6 +1,6 @@
 # Vox Critica
 
-Filmrecensioner från svenska publikationer, samlade på ett ställe. A minimal, ad-free review
+Film- och skivrecensioner från svenska publikationer, samlade på ett ställe. A minimal, ad-free review
 aggregator: scrapers collect reviews into SQLite, and a static Next.js site is built from it and
 published on GitHub Pages.
 
@@ -27,6 +27,7 @@ Other commands:
 
 ```sh
 pnpm scrape [--source <slug>]... [--since 2026-01-01] [--limit 20] [--db path]
+pnpm scrape-music [--source <slug>]... [--since …] [--limit …] [--history]  # album reviews, matched via MusicBrainz
 pnpm backfill-details [--db path]  # fetch TMDB genres, IMDb ids and overviews (English-only ones go to overview_en for translation)
 pnpm refresh-watch-providers [--db path]  # fetch Swedish streaming/rent/buy options from TMDB (JustWatch data)
 pnpm refresh-watch-offers [--db path]  # fetch direct links and prices from Watchmode (needs WATCHMODE_API_KEY)
@@ -52,6 +53,19 @@ Search distinguishes loading, no matches, and a failed request with a retry acti
 - `movies(id, tmdb_id?, title, original_title?, year?, poster_path?, slug, title_key, original_title_key?)`
 - `movie_genres(movie_id, name)`: TMDB genre names, only for TMDB-matched movies
 - `reviews(id, movie_id, publication_id, url UNIQUE, source_title, source_year?, raw_score, scale_max, normalized_score, critic?, published_at?, scraped_at)`
+
+Music lives in separate tables so film data and queries are untouched:
+
+- `music_publications(id, slug, name, url, paywalled)`
+- `artists(id, mbid, name, slug)`
+- `albums(id, mbid?, artist_id?, artist_credit, title, kind, year, track_count, cover_url, cover_thumbnail_url, slug, artist_key, title_key)`
+- `album_reviews(id, album_id, publication_id, url UNIQUE, source_artist, source_title, raw_score, scale_max, normalized_score, critic?, published_at?, scraped_at)`
+
+Albums are matched on artist and title against MusicBrainz release groups (albums and EPs only).
+The first release year must not be after the review year nor more than two years before it, and
+the closest year wins; anything ambiguous stays unmatched (`mbid` NULL) and hidden, like films
+without a TMDB id. Music sources implement `MusicSource` and live in
+`packages/scraper/src/music-sources/<slug>`.
 
 Each review keeps its raw score and scale, plus a normalized 0–100 score
 (`round(raw / max * 100)`). A movie's score is the mean of its normalized review scores.
@@ -131,4 +145,6 @@ One-time setup: set Settings → Pages → Source to "GitHub Actions" and add th
 repository secret.
 
 Movie data and posters come from [TMDB](https://www.themoviedb.org/). This product uses the TMDB
-API but is not endorsed or certified by TMDB.
+API but is not endorsed or certified by TMDB. Album data comes from
+[MusicBrainz](https://musicbrainz.org/) and covers from the
+[Cover Art Archive](https://coverartarchive.org/).
