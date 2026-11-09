@@ -11,6 +11,7 @@
     "build": "pnpm --filter @arscritica/web build",
     "scrape": "pnpm --filter @arscritica/scraper scrape",
     "scrape-music": "pnpm --filter @arscritica/scraper scrape-music",
+    "rematch-albums": "pnpm --filter @arscritica/scraper rematch-albums",
     "backfill-details": "pnpm --filter @arscritica/scraper backfill-details",
     "refresh-watch-providers": "pnpm --filter @arscritica/scraper refresh-watch-providers",
     "refresh-watch-offers": "pnpm --filter @arscritica/scraper refresh-watch-offers",

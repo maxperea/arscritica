@@ -182,3 +182,29 @@ function uniqueSlug(db: Database, table: "albums" | "artists", text: string, fal
   for (let suffix = 2; getRow(taken, slug); suffix++) slug = `${base}-${suffix}`;
   return slug;
 }
+
+export interface UnmatchedAlbum {
+  id: number;
+  artist: string;
+  title: string;
+  reviewedAt: string;
+}
+
+export function recentUnmatchedAlbums(db: Database, days: number): UnmatchedAlbum[] {
+  return allRows<UnmatchedAlbum>(
+    db.prepare(
+      `SELECT a.id, a.artist_credit AS artist, a.title,
+         MIN(COALESCE(r.published_at, r.scraped_at)) AS reviewedAt
+       FROM albums a JOIN album_reviews r ON r.album_id = a.id
+       WHERE a.mbid IS NULL
+       GROUP BY a.id
+       HAVING reviewedAt >= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?)`,
+    ),
+    `-${days} days`,
+  );
+}
+
+export function mergeAlbumInto(db: Database, fromId: number, toId: number): void {
+  db.prepare("UPDATE album_reviews SET album_id = ? WHERE album_id = ?").run(toId, fromId);
+  db.prepare("DELETE FROM albums WHERE id = ?").run(fromId);
+}

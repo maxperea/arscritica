@@ -3,6 +3,8 @@ import {
   findAlbumIdByMbid,
   findAlbums,
   insertAlbum,
+  mergeAlbumInto,
+  recentUnmatchedAlbums,
   type AlbumCandidate,
   type Database,
 } from "@arscritica/db";
@@ -46,7 +48,7 @@ export async function resolveAlbumId(
 }
 
 async function lookupSafely(
-  review: ScrapedAlbumReview,
+  review: Pick<ScrapedAlbumReview, "artist" | "title">,
   reviewedYear: number | undefined,
   lookup?: AlbumLookup,
 ): Promise<MusicBrainzAlbum | undefined> {
@@ -70,4 +72,23 @@ function reviewedWithin(album: AlbumCandidate, from: number | undefined, years: 
 
 function toUntracked(review: ScrapedAlbumReview) {
   return { artistCredit: review.artist, title: review.title };
+}
+
+export async function rematchRecentAlbums(
+  db: Database,
+  lookup: AlbumLookup,
+  days = 30,
+): Promise<{ checked: number; matched: number }> {
+  const albums = recentUnmatchedAlbums(db, days);
+  let matched = 0;
+  for (const album of albums) {
+    const reviewedYear = new Date(album.reviewedAt).getUTCFullYear();
+    const found = await lookupSafely(album, reviewedYear, lookup);
+    if (!found) continue;
+    const knownId = findAlbumIdByMbid(db, found.mbid);
+    if (knownId === undefined) attachAlbumData(db, album.id, found);
+    else mergeAlbumInto(db, album.id, knownId);
+    matched++;
+  }
+  return { checked: albums.length, matched };
 }

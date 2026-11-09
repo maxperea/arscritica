@@ -37,6 +37,10 @@ jobs:
         if: github.event_name != 'push'
         continue-on-error: true
         run: pnpm scrape-music
+      - name: Rematch recent albums
+        if: github.event_name != 'push'
+        continue-on-error: true
+        run: pnpm rematch-albums
       - name: Backfill movie details
         if: github.event_name != 'push'
         continue-on-error: true
