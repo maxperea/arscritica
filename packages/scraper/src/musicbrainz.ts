@@ -52,12 +52,6 @@ interface Release {
   media?: { "track-count"?: number }[];
 }
 
-interface CoverArtImage {
-  front?: boolean;
-  image?: string;
-  thumbnails?: Record<string, string | undefined>;
-}
-
 export interface MusicBrainzClientOptions {
   minDelayMs?: number;
   userAgent?: string;
@@ -89,7 +83,9 @@ export class MusicBrainzClient implements AlbumLookup {
     if (!group) return undefined;
 
     const credits = group["artist-credit"] ?? [];
-    const [trackCount, cover] = [await this.trackCount(group.id), await this.cover(group.id)];
+    const trackCount = await this.trackCount(group.id).catch(() => undefined);
+    const cover = await this.hasCover(group.id).catch(() => false);
+    const coverUrl = `${COVER_ART}/release-group/${group.id}/front`;
     return {
       mbid: group.id,
       title: group.title,
@@ -98,8 +94,8 @@ export class MusicBrainzClient implements AlbumLookup {
       kind: group["primary-type"] === "EP" ? "ep" : "album",
       year: releaseYear(group)!,
       trackCount,
-      coverUrl: cover?.large,
-      coverThumbnailUrl: cover?.small,
+      coverUrl: cover ? `${coverUrl}-500` : undefined,
+      coverThumbnailUrl: cover ? `${coverUrl}-250` : undefined,
     };
   }
 
@@ -117,19 +113,15 @@ export class MusicBrainzClient implements AlbumLookup {
     return tracks || undefined;
   }
 
-  private async cover(
-    releaseGroupId: string,
-  ): Promise<{ large?: string; small?: string } | undefined> {
-    const result = await this.json<{ images?: CoverArtImage[] }>(
-      `${COVER_ART}/release-group/${releaseGroupId}`,
-    );
-    const front = result?.images?.find((image) => image.front);
-    if (!front) return undefined;
-    const thumbnails = front.thumbnails ?? {};
-    return {
-      large: https(thumbnails["500"] ?? thumbnails.large ?? front.image),
-      small: https(thumbnails["250"] ?? thumbnails.small ?? thumbnails["500"] ?? front.image),
-    };
+  private async hasCover(releaseGroupId: string): Promise<boolean> {
+    await this.waitForTurn(new URL(COVER_ART).host);
+    const response = await fetch(`${COVER_ART}/release-group/${releaseGroupId}/front`, {
+      method: "HEAD",
+      redirect: "manual",
+      headers: { "user-agent": this.userAgent },
+      signal: AbortSignal.timeout(20_000),
+    });
+    return response.status >= 300 && response.status < 400;
   }
 
   private async json<T>(url: string): Promise<T | undefined> {
@@ -217,8 +209,4 @@ function releaseYear(group: ReleaseGroup): number | undefined {
 
 function escapeQuery(text: string): string {
   return text.replace(/["\\]/g, "\\$&");
-}
-
-function https(url: string | undefined): string | undefined {
-  return url?.replace(/^http:/, "https:");
 }

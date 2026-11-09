@@ -15,11 +15,10 @@ test("finds an album with its year, track count and cover", async () => {
   globalThis.fetch = (async (input: string | URL) => {
     const url = new URL(String(input));
     requests.push(url.href);
-    const fixture = url.host.startsWith("coverartarchive")
-      ? "coverartarchive.json"
-      : url.pathname.endsWith("/release")
-        ? "musicbrainz-releases.json"
-        : "musicbrainz-search.json";
+    if (url.host === "coverartarchive.org") return new Response(null, { status: 307 });
+    const fixture = url.pathname.endsWith("/release")
+      ? "musicbrainz-releases.json"
+      : "musicbrainz-search.json";
     return new Response(readFixture(import.meta.url, fixture));
   }) as typeof fetch;
 
@@ -33,9 +32,9 @@ test("finds an album with its year, track count and cover", async () => {
     year: 2018,
     trackCount: 9,
     coverUrl:
-      "https://coverartarchive.org/release/72c8191a-0de2-477a-8332-44fead8ff10e/21673502612-500.jpg",
+      "https://coverartarchive.org/release-group/6f46d5e4-1e46-4480-b120-d04b37145f7f/front-500",
     coverThumbnailUrl:
-      "https://coverartarchive.org/release/72c8191a-0de2-477a-8332-44fead8ff10e/21673502612-250.jpg",
+      "https://coverartarchive.org/release-group/6f46d5e4-1e46-4480-b120-d04b37145f7f/front-250",
   });
   assert.equal(requests.length, 3);
 });
