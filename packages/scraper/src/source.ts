@@ -25,3 +25,21 @@ export interface Source {
 export interface Fetcher {
   fetchText(url: string): Promise<string>;
 }
+
+export interface ScrapedAlbumReview {
+  artist: string;
+  title: string;
+  rawScore: number;
+  scaleMax: number;
+  critic?: string;
+  publishedAt?: string;
+}
+
+export interface MusicSource {
+  slug: string;
+  name: string;
+  url: string;
+  paywalled?: boolean;
+  listReviewUrls(context: ListContext): Promise<string[]>;
+  parseReview(url: string, html: string): ScrapedAlbumReview | null;
+}

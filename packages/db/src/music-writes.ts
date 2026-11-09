@@ -27,6 +27,7 @@ export interface AlbumCandidate {
   id: number;
   mbid: string | null;
   year: number | null;
+  firstReviewedYear: number | null;
 }
 
 export interface AlbumReviewInput {
@@ -83,7 +84,12 @@ export function findAlbumIdByMbid(db: Database, mbid: string): number | undefine
 
 export function findAlbums(db: Database, artist: string, title: string): AlbumCandidate[] {
   return allRows<AlbumCandidate>(
-    db.prepare("SELECT id, mbid, year FROM albums WHERE artist_key = ? AND title_key = ?"),
+    db.prepare(
+      `SELECT id, mbid, year,
+         (SELECT CAST(MIN(strftime('%Y', COALESCE(published_at, scraped_at))) AS INTEGER)
+          FROM album_reviews WHERE album_id = albums.id) AS firstReviewedYear
+       FROM albums WHERE artist_key = ? AND title_key = ?`,
+    ),
     normalizeTitle(artist),
     normalizeTitle(title),
   );

@@ -2,7 +2,8 @@ import { setTimeout as sleep } from "node:timers/promises";
 import type { AlbumKind } from "@arscritica/db";
 import { normalizeTitle } from "@arscritica/db/text";
 
-export const MUSICBRAINZ_USER_AGENT = "ArsCriticaBot/0.1 ( https://github.com/maxperea/arscritica )";
+export const MUSICBRAINZ_USER_AGENT =
+  "ArsCriticaBot/0.1 ( https://github.com/maxperea/arscritica )";
 
 const API = "https://musicbrainz.org/ws/2";
 const COVER_ART = "https://coverartarchive.org";
@@ -116,7 +117,9 @@ export class MusicBrainzClient implements AlbumLookup {
     return tracks || undefined;
   }
 
-  private async cover(releaseGroupId: string): Promise<{ large?: string; small?: string } | undefined> {
+  private async cover(
+    releaseGroupId: string,
+  ): Promise<{ large?: string; small?: string } | undefined> {
     const result = await this.json<{ images?: CoverArtImage[] }>(
       `${COVER_ART}/release-group/${releaseGroupId}`,
     );
