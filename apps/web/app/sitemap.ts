@@ -1,5 +1,14 @@
 import type { MetadataRoute } from "next";
-import { getPublication, publicationSlugs, searchIndex } from "@arscritica/db";
+import {
+  albumSearchIndex,
+  getArtist,
+  getMusicPublication,
+  getPublication,
+  artistSlugs,
+  musicPublicationSlugs,
+  publicationSlugs,
+  searchIndex,
+} from "@arscritica/db";
 import { getDb } from "@/lib/db";
 import { absoluteUrl } from "@/lib/seo";
 
@@ -16,6 +25,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
     url: absoluteUrl(`/publikationer/${slug}/`),
     lastModified: getPublication(db, slug)?.reviews[0]?.publishedAt ?? undefined,
   }));
+  const albums = albumSearchIndex(db);
+  const latestAlbum = albums.reduce(
+    (max, album) => (album.latestReviewAt > max ? album.latestReviewAt : max),
+    "",
+  );
+  const musicPublications = musicPublicationSlugs(db).map((slug) => ({
+    url: absoluteUrl(`/musik/publikationer/${slug}/`),
+    lastModified: getMusicPublication(db, slug)?.reviews[0]?.publishedAt ?? undefined,
+  }));
+  const artists = artistSlugs(db).map((slug) => ({
+    url: absoluteUrl(`/musik/artist/${slug}/`),
+    lastModified: getArtist(db, slug)?.albums.reduce(
+      (max, album) => (album.latestReviewAt > max ? album.latestReviewAt : max),
+      "",
+    ),
+  }));
   return [
     { url: absoluteUrl("/"), lastModified: latest || undefined },
     { url: absoluteUrl("/topplistor/"), lastModified: latest || undefined },
@@ -24,6 +49,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...movies.map((movie) => ({
       url: absoluteUrl(`/film/${movie.slug}/`),
       lastModified: movie.latestReviewAt,
+    })),
+    { url: absoluteUrl("/musik/"), lastModified: latestAlbum || undefined },
+    { url: absoluteUrl("/musik/topplistor/"), lastModified: latestAlbum || undefined },
+    { url: absoluteUrl("/musik/publikationer/"), lastModified: latestAlbum || undefined },
+    ...musicPublications,
+    ...artists,
+    ...albums.map((album) => ({
+      url: absoluteUrl(`/musik/album/${album.slug}/`),
+      lastModified: album.latestReviewAt,
     })),
   ];
 }

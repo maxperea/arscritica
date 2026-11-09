@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import type { MovieDetail } from "@arscritica/db";
+import type { AlbumDetail, MovieDetail } from "@arscritica/db";
 import { posterUrl, reviewCountLabel } from "./format";
 
 export const siteName = "Vox Critica";
@@ -85,6 +85,48 @@ export function movieJsonLd(movie: MovieDetail, path: string): string {
       bestRating: 100,
       worstRating: 0,
       reviewCount: movie.reviewCount,
+    },
+  };
+  return JSON.stringify(data).replace(/</g, "\\u003c");
+}
+
+export function albumPageTitle(album: Pick<AlbumDetail, "title" | "artistCredit">): string {
+  const name = `${album.title} av ${album.artistCredit}`;
+  const full = `${name} – recensioner och betyg`;
+  if (full.length <= 60) return full;
+  return name.length <= 48 ? `${name} – recensioner` : `${album.title} – recensioner`;
+}
+
+export function albumDescription(
+  album: Pick<AlbumDetail, "title" | "artistCredit" | "year" | "score" | "reviewCount">,
+): string {
+  const name = `${album.title} av ${album.artistCredit}${album.year ? ` (${album.year})` : ""}`;
+  const scoreLabel = album.reviewCount === 1 ? "betyget" : "kritikersnittet";
+  const read = album.reviewCount === 1 ? "Läs recensionen" : "Läs recensionerna";
+  return (
+    `${name} har ${scoreLabel} ${album.score} från ${reviewCountLabel(album.reviewCount)} ` +
+    `i svensk press. ${read}.`
+  );
+}
+
+export function albumJsonLd(album: AlbumDetail, path: string): string {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "MusicAlbum",
+    name: album.title,
+    url: absoluteUrl(path),
+    byArtist: { "@type": "MusicGroup", name: album.artistCredit },
+    albumReleaseType: album.kind === "ep" ? "EPRelease" : "AlbumRelease",
+    ...(album.year ? { datePublished: String(album.year) } : {}),
+    ...(album.coverUrl ? { image: album.coverUrl } : {}),
+    ...(album.trackCount ? { numTracks: album.trackCount } : {}),
+    sameAs: `https://musicbrainz.org/release-group/${album.mbid}`,
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: album.score,
+      bestRating: 100,
+      worstRating: 0,
+      reviewCount: album.reviewCount,
     },
   };
   return JSON.stringify(data).replace(/</g, "\\u003c");

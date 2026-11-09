@@ -2,6 +2,7 @@ import { rmSync } from "node:fs";
 import { openDatabase } from "./database";
 import { defaultDbPath } from "./paths";
 import { slugify } from "./text";
+import { insertAlbum, insertAlbumReview, upsertMusicPublication } from "./music-writes";
 import { insertMovie, insertReview, upsertPublication } from "./writes";
 
 const publications = [
@@ -67,6 +68,36 @@ const movies: {
   },
 ];
 
+const albums: {
+  artist: string;
+  title: string;
+  year: number;
+  publishedOn: string;
+  scores: Record<string, number>;
+}[] = [
+  {
+    artist: "Fyrskeppet",
+    title: "Kustljus",
+    year: 2026,
+    publishedOn: "2026-10-20",
+    scores: { aftonbladet: 4, moviezine: 4 },
+  },
+  {
+    artist: "Elsa Exempel",
+    title: "Nattåg",
+    year: 2026,
+    publishedOn: "2026-10-12",
+    scores: { aftonbladet: 3, filmtopp: 2 },
+  },
+  {
+    artist: "Bandet",
+    title: "Bandet",
+    year: 2026,
+    publishedOn: "2026-10-05",
+    scores: { moviezine: 5 },
+  },
+];
+
 const file = defaultDbPath();
 rmSync(file, { force: true });
 const db = openDatabase({ path: file });
@@ -86,6 +117,34 @@ for (const movie of movies) {
       scaleMax: 5,
       critic: critics[slug],
       publishedAt: `${movie.publishedOn}T08:00:00.000Z`,
+    });
+  }
+}
+
+const musicPublicationIds = new Map(
+  publications.map((p) => [p.slug, upsertMusicPublication(db, p)]),
+);
+
+for (const [index, album] of albums.entries()) {
+  const albumId = insertAlbum(db, {
+    mbid: `00000000-0000-0000-0000-00000000000${index}`,
+    artist: { mbid: `00000000-0000-0000-0000-10000000000${index}`, name: album.artist },
+    artistCredit: album.artist,
+    title: album.title,
+    kind: "album",
+    year: album.year,
+  });
+  for (const [slug, rawScore] of Object.entries(album.scores)) {
+    insertAlbumReview(db, {
+      albumId,
+      publicationId: musicPublicationIds.get(slug)!,
+      url: `https://example.com/exempel/${slug}/musik/${slugify(album.title)}`,
+      sourceArtist: album.artist,
+      sourceTitle: album.title,
+      rawScore,
+      scaleMax: 5,
+      critic: critics[slug],
+      publishedAt: `${album.publishedOn}T08:00:00.000Z`,
     });
   }
 }

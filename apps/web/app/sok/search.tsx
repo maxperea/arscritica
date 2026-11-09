@@ -1,16 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { MovieSummary } from "@arscritica/db";
+import type { AlbumSummary, MovieSummary } from "@arscritica/db";
 import { normalizeTitle } from "@arscritica/db/text";
-import { MovieList } from "@/components/movie-list";
+import { AlbumLink } from "@/components/album-list";
+import { MovieLink } from "@/components/movie-list";
 
-type IndexedMovie = MovieSummary & { keys: string[] };
+type SearchItem = { key: string; title: string; keys: string[] } & (
+  { movie: MovieSummary } | { album: AlbumSummary }
+);
 
 const pageSize = 50;
 
 export function Search() {
-  const [movies, setMovies] = useState<IndexedMovie[] | null>(null);
+  const [items, setItems] = useState<SearchItem[] | null>(null);
   const [query, setQuery] = useState("");
   const [loadError, setLoadError] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -29,24 +32,40 @@ export function Search() {
 
   useEffect(() => {
     const controller = new AbortController();
-    setMovies(null);
+    setItems(null);
     setLoadError(false);
-    fetch(`${process.env.ARSCRITICA_BASE_PATH}/search-index.json`, { signal: controller.signal })
-      .then((response) => {
-        if (!response.ok) throw new Error(`Search index request failed: ${response.status}`);
-        return response.json() as Promise<MovieSummary[]>;
-      })
-      .then((index) =>
-        setMovies(
-          index.map((movie) => ({
-            ...movie,
-            keys: [movie.title, movie.originalTitle ?? ""].map(normalizeTitle),
-          })),
+    const load = <T,>(path: string) =>
+      fetch(`${process.env.ARSCRITICA_BASE_PATH}${path}`, { signal: controller.signal }).then(
+        (response) => {
+          if (!response.ok) throw new Error(`Search index request failed: ${response.status}`);
+          return response.json() as Promise<T[]>;
+        },
+      );
+    Promise.all([
+      load<MovieSummary>("/search-index.json"),
+      load<AlbumSummary>("/musik/search-index.json"),
+    ])
+      .then(([movies, albums]) =>
+        setItems(
+          [
+            ...movies.map((movie) => ({
+              key: `film-${movie.slug}`,
+              title: movie.title,
+              keys: [movie.title, movie.originalTitle ?? ""].map(normalizeTitle),
+              movie,
+            })),
+            ...albums.map((album) => ({
+              key: `album-${album.slug}`,
+              title: album.title,
+              keys: [album.title, album.artistCredit].map(normalizeTitle),
+              album,
+            })),
+          ].sort((a, b) => (a.title < b.title ? -1 : a.title > b.title ? 1 : 0)),
         ),
       )
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
-        console.error("Could not load the film search index", error);
+        console.error("Could not load the search index", error);
         setLoadError(true);
       });
     return () => controller.abort();
@@ -55,10 +74,8 @@ export function Search() {
   const needle = normalizeTitle(query);
   const results = useMemo(
     () =>
-      needle && movies
-        ? movies.filter((movie) => movie.keys.some((key) => key.includes(needle)))
-        : [],
-    [movies, needle],
+      needle && items ? items.filter((item) => item.keys.some((key) => key.includes(needle))) : [],
+    [items, needle],
   );
   const visible = showAll ? results : results.slice(0, pageSize);
 
@@ -76,8 +93,8 @@ export function Search() {
       <input
         className="search-input"
         type="search"
-        placeholder="Sök på titel…"
-        aria-label="Sök på titel"
+        placeholder="Sök på titel eller artist…"
+        aria-label="Sök på titel eller artist"
         ref={inputRef}
         value={query}
         onChange={(event) => changeQuery(event.target.value)}
@@ -97,13 +114,13 @@ export function Search() {
             Försök igen
           </button>
         </div>
-      ) : movies === null ? (
+      ) : items === null ? (
         <p className="muted" role="status">
-          Laddar filmer…
+          Laddar…
         </p>
       ) : needle && !results.length ? (
         <div className="empty-state">
-          <p role="status">Inga filmer matchade sökningen.</p>
+          <p role="status">Inga filmer eller album matchade sökningen.</p>
           <button
             type="button"
             className="button"
@@ -119,12 +136,22 @@ export function Search() {
         <>
           <p className="muted caption" role="status">
             {visible.length < results.length
-              ? `Visar ${visible.length} av ${results.length} filmer`
+              ? `Visar ${visible.length} av ${results.length} träffar`
               : results.length === 1
-                ? "1 film"
-                : `${results.length} filmer`}
+                ? "1 träff"
+                : `${results.length} träffar`}
           </p>
-          <MovieList movies={visible} />
+          <ul className="list movie-list">
+            {visible.map((item) => (
+              <li key={item.key}>
+                {"movie" in item ? (
+                  <MovieLink movie={item.movie} label="Film" />
+                ) : (
+                  <AlbumLink album={item.album} label="Album" />
+                )}
+              </li>
+            ))}
+          </ul>
           {visible.length < results.length && (
             <button type="button" className="button show-more" onClick={() => setShowAll(true)}>
               Visa fler
@@ -132,7 +159,7 @@ export function Search() {
           )}
         </>
       ) : (
-        <p className="muted">Sök på svensk titel eller originaltitel.</p>
+        <p className="muted">Sök på filmtitel, albumtitel eller artist.</p>
       )}
     </>
   );

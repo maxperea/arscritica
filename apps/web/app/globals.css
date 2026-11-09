@@ -126,6 +126,29 @@ h2 {
   text-underline-offset: 1.3rem;
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.site-header .section-switch {
+  gap: 0.875rem;
+  padding-left: 1.25rem;
+  border-left: 1px solid var(--border);
+}
+
+.site-header .section-switch a {
+  min-height: 1.75rem;
+  color: var(--muted);
+}
+
+.site-header .section-switch a[aria-current] {
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
 .skip-link {
   position: absolute;
   top: -5rem;
@@ -304,6 +327,14 @@ main {
 .poster-large {
   width: 11rem;
   height: 16.5rem;
+}
+
+.cover {
+  height: 2.75rem;
+}
+
+.cover.poster-large {
+  height: 11rem;
 }
 
 .movie-header {
@@ -667,6 +698,15 @@ main {
     text-underline-offset: 1.1rem;
   }
 
+  .brand,
+  .site-header .section-switch {
+    gap: 0.75rem;
+  }
+
+  .site-header .section-switch {
+    padding-left: 0.75rem;
+  }
+
   .item-meta,
   .review-item .muted {
     font-size: 0.8125rem;
@@ -701,6 +741,10 @@ main {
     width: 100%;
     height: auto;
     aspect-ratio: 2 / 3;
+  }
+
+  .movie-header .cover {
+    aspect-ratio: 1;
   }
 
   .aggregate {
@@ -781,6 +825,10 @@ main {
   .movie-link .poster {
     width: 2.25rem;
     height: 3.375rem;
+  }
+
+  .movie-link .cover {
+    height: 2.25rem;
   }
 
   .movie-link .score {
