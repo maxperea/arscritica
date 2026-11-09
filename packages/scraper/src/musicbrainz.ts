@@ -135,10 +135,17 @@ export class MusicBrainzClient implements AlbumLookup {
   private async json<T>(url: string): Promise<T | undefined> {
     for (let attempt = 1; ; attempt++) {
       await this.waitForTurn(new URL(url).host);
-      const response = await fetch(url, {
-        headers: { "user-agent": this.userAgent, accept: "application/json" },
-        signal: AbortSignal.timeout(20_000),
-      });
+      let response: Response;
+      try {
+        response = await fetch(url, {
+          headers: { "user-agent": this.userAgent, accept: "application/json" },
+          signal: AbortSignal.timeout(20_000),
+        });
+      } catch (error) {
+        if (attempt >= MAX_ATTEMPTS) throw error;
+        await sleep(this.minDelayMs * 2 ** attempt);
+        continue;
+      }
       if (response.status === 404) return undefined;
       if (response.ok) return (await response.json()) as T;
       if (attempt >= MAX_ATTEMPTS || ![429, 500, 502, 503].includes(response.status)) {
