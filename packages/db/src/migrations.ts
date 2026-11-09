@@ -98,4 +98,57 @@ export const migrations: string[] = [
   ALTER TABLE movies ADD COLUMN runtime INTEGER;
   ALTER TABLE movies ADD COLUMN runtime_checked_at TEXT;
   `,
+  `
+  CREATE TABLE music_publications (
+    id INTEGER PRIMARY KEY,
+    slug TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    url TEXT NOT NULL,
+    paywalled INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE artists (
+    id INTEGER PRIMARY KEY,
+    mbid TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE
+  );
+
+  CREATE TABLE albums (
+    id INTEGER PRIMARY KEY,
+    mbid TEXT UNIQUE,
+    artist_id INTEGER REFERENCES artists (id),
+    artist_credit TEXT NOT NULL,
+    title TEXT NOT NULL,
+    kind TEXT,
+    year INTEGER,
+    track_count INTEGER,
+    cover_url TEXT,
+    cover_thumbnail_url TEXT,
+    slug TEXT NOT NULL UNIQUE,
+    artist_key TEXT NOT NULL,
+    title_key TEXT NOT NULL
+  );
+
+  CREATE INDEX albums_keys ON albums (artist_key, title_key);
+  CREATE INDEX albums_artist_id ON albums (artist_id);
+
+  CREATE TABLE album_reviews (
+    id INTEGER PRIMARY KEY,
+    album_id INTEGER NOT NULL REFERENCES albums (id),
+    publication_id INTEGER NOT NULL REFERENCES music_publications (id),
+    url TEXT NOT NULL UNIQUE,
+    source_artist TEXT NOT NULL,
+    source_title TEXT NOT NULL,
+    raw_score REAL NOT NULL,
+    scale_max REAL NOT NULL CHECK (scale_max > 0),
+    normalized_score INTEGER NOT NULL CHECK (normalized_score BETWEEN 0 AND 100),
+    critic TEXT,
+    published_at TEXT,
+    scraped_at TEXT NOT NULL
+  );
+
+  CREATE INDEX album_reviews_album_id ON album_reviews (album_id);
+  CREATE INDEX album_reviews_publication_id ON album_reviews (publication_id);
+  `,
 ];
