@@ -83,8 +83,10 @@ export class MusicBrainzClient implements AlbumLookup {
     if (!group) return undefined;
 
     const credits = group["artist-credit"] ?? [];
-    const trackCount = await this.trackCount(group.id).catch(() => undefined);
-    const cover = await this.hasCover(group.id).catch(() => false);
+    const [trackCount, cover] = await Promise.all([
+      this.trackCount(group.id).catch(() => undefined),
+      this.hasCover(group.id).catch(() => false),
+    ]);
     const coverUrl = `${COVER_ART}/release-group/${group.id}/front`;
     return {
       mbid: group.id,
@@ -175,9 +177,9 @@ export function pickReleaseGroup(
         (year <= reviewedYear && year >= reviewedYear - MAX_YEARS_BEFORE_REVIEW))
     );
   });
-  const latestYear = Math.max(...candidates.map((group) => releaseYear(group)!));
-  const latest = candidates.filter((group) => releaseYear(group) === latestYear);
-  return latest.length === 1 ? latest[0] : undefined;
+  const earliestYear = Math.min(...candidates.map((group) => releaseYear(group)!));
+  const earliest = candidates.filter((group) => releaseYear(group) === earliestYear);
+  return earliest.length === 1 ? earliest[0] : undefined;
 }
 
 function creditMatches(credits: ArtistCredit[], artistKey: string): boolean {

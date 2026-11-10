@@ -63,7 +63,7 @@ Music lives in separate tables so film data and queries are untouched:
 
 Albums are matched on artist and title against MusicBrainz release groups (albums and EPs only).
 The first release year must not be after the review year nor more than two years before it, and
-the closest year wins; anything ambiguous stays unmatched (`mbid` NULL) and hidden, like films
+the earliest year wins; anything ambiguous stays unmatched (`mbid` NULL) and hidden, like films
 without a TMDB id. Music sources implement `MusicSource` and live in
 `packages/scraper/src/music-sources/<slug>`.
 

@@ -46,10 +46,10 @@ test("leaves releases after the review or long before it unmatched", () => {
   assert.equal(pickReleaseGroup(groups, "The Robyn", "Honey", 2019)?.title, "Honey");
 });
 
-test("leaves same-titled albums from the same year unmatched", () => {
+test("prefers the earliest release and leaves same-year twins unmatched", () => {
   const album = search["release-groups"][1];
   const twin = { ...album, id: "twin" };
   assert.equal(pickReleaseGroup([album, twin], "Robyn", "Honey", 2018), undefined);
-  const older = { ...album, id: "older", "first-release-date": "2017-01-01" };
-  assert.equal(pickReleaseGroup([older, album], "Robyn", "Honey", 2018)?.id, album.id);
+  const reissue = { ...album, id: "reissue", "first-release-date": "2019-01-01" };
+  assert.equal(pickReleaseGroup([reissue, album], "Robyn", "Honey", 2019)?.id, album.id);
 });
