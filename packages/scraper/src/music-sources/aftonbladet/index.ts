@@ -27,6 +27,12 @@ const NAME_PATTERNS: { pattern: RegExp; titleFirst: boolean }[] = [
   { pattern: /^(.+?):\s*(.+?)\s*[-–]\s*recension\b.*$/i, titleFirst: false },
 ];
 const QUOTE_PATTERN = /[”"“]/;
+const GRADE_SELECTOR = 'main article svg[aria-label^="Betyg"], main article img[alt^="Betyg"]';
+const EP_SUFFIX_PATTERN = /\s*\(ep\)$/i;
+const FACT_LINE_COUNT = 3;
+const MAX_FACT_LINE_LENGTH = 100;
+const NOT_A_FACT_LINE_PATTERN = /^(så många|plats:|publik:)/i;
+const SINGLE_TEXT_PATTERN = /\b(singel\w*|singlar|låt|låten|spellista)\b/i;
 const PROSE_ARTIST_PATTERN = /\b(nya|album|albumet|skivan|släpper|recension)\b/i;
 const QUOTED_PATTERN = /^[”"“](.+)[”"“]$/;
 const ALBUM_LABELS = new Set(["ALBUM", "EP"]);
@@ -98,12 +104,15 @@ export const aftonbladet: MusicSource = {
     const review = linkedData.find((entry) => entry["@type"] === "Review");
     if (!hasAlbumLabel(review?.reviewBody ?? article.description ?? "")) return null;
 
-    const item = parseItemName(review?.itemReviewed?.name ?? $("head > title").first().text());
+    const item =
+      parseItemName(review?.itemReviewed?.name ?? $("head > title").first().text()) ??
+      gradeParagraphItem($, `${article.description ?? ""} ${$("head > title").first().text()}`);
     const score = review ? linkedDataScore(review) : gradeLabelScore($);
     if (!item || !score) return null;
 
     return {
       ...item,
+      title: item.title.replace(EP_SUFFIX_PATTERN, ""),
       ...score,
       critic: (review?.author ?? article.author)?.[0]?.name?.trim() || undefined,
       publishedAt: review?.datePublished ?? article.datePublished,
@@ -140,6 +149,33 @@ function parseItemName(name: string): Pick<ScrapedAlbumReview, "artist" | "title
   return { artist, title };
 }
 
+function gradeParagraphItem(
+  $: CheerioAPI,
+  context: string,
+): Pick<ScrapedAlbumReview, "artist" | "title"> | null {
+  if (SINGLE_TEXT_PATTERN.test(context)) return null;
+  const lines = ($(GRADE_SELECTOR).first().closest("p").html() ?? "")
+    .split(/<br\s*\/?>/i)
+    .map((part) => load(part).text().replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+  if (
+    lines.length !== FACT_LINE_COUNT ||
+    lines.some((line) => line.length > MAX_FACT_LINE_LENGTH || NOT_A_FACT_LINE_PATTERN.test(line))
+  ) {
+    return null;
+  }
+  const [artist, title] = lines as [string, string];
+  if (
+    QUOTE_PATTERN.test(artist) ||
+    VARIOUS_ARTISTS_PATTERN.test(artist) ||
+    NOT_AN_ALBUM_PATTERN.test(title) ||
+    /\//.test(title)
+  ) {
+    return null;
+  }
+  return { artist, title: title.replace(QUOTED_PATTERN, "$1") };
+}
+
 function linkedDataScore(review: LinkedData): Score | null {
   const rawScore = Number(review.reviewRating?.ratingValue);
   if (!Number.isFinite(rawScore)) return null;
@@ -147,7 +183,7 @@ function linkedDataScore(review: LinkedData): Score | null {
 }
 
 function gradeLabelScore($: CheerioAPI): Score | null {
-  const labels = $('main article svg[aria-label^="Betyg"], main article img[alt^="Betyg"]')
+  const labels = $(GRADE_SELECTOR)
     .toArray()
     .map((grade) => $(grade).attr("aria-label") ?? $(grade).attr("alt") ?? "");
   const scores = new Set(labels.map(gradeFromLabel));
