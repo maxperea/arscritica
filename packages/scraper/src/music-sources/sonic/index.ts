@@ -1,5 +1,5 @@
 import { load, type CheerioAPI } from "cheerio";
-import type { MusicSource } from "../../source";
+import type { MusicSource, ScrapedAlbumReview } from "../../source";
 import { listWordPressPostLinks } from "../../sources/wordpress";
 
 const BASE_URL = "https://sonicmagazine.com";
@@ -11,6 +11,8 @@ const REISSUE_PATTERN =
   /\bcd-låda|\blåda\b|\bbox\b|\bbox ?set\b|\bboxen\b|\bnyutgåva|\bnyutgivning|återutg|\bremaster|\bdeluxe\b|\banniversary\b|\bbootleg\b/i;
 const NOT_STUDIO_ALBUM_PATTERN =
   /\blive\b|\bgreatest hits\b|\bbest of\b|\bcollection\b|\banthology\b|\bsessions\b|\bdemos\b|\[dvd\]|\s[+/]\s/i;
+const LEGACY_GRADE_PATTERN = /^Betyg:?\s*(\d{1,2})$/i;
+const LEGACY_SCALE_MAX = 10;
 const SINGLE_PATTERN = /\bsingel\b|\bsingle\b/i;
 const COMPILATION_ARTIST_PATTERN = /diverse artister|^v\/a$|various artists|blandade artister/i;
 
@@ -40,6 +42,7 @@ export const sonic: MusicSource = {
 
   parseReview(_url, html) {
     const $ = load(html);
+    if (!$(".card-info").length) return parseLegacyReview($);
     const facts = readFactBox($);
     const artist = facts.get("artist") ?? "";
     const title = headlineAlbum($, artist) ?? facts.get("album") ?? "";
@@ -59,6 +62,36 @@ export const sonic: MusicSource = {
     };
   },
 };
+
+function parseLegacyReview($: CheerioAPI): ScrapedAlbumReview | null {
+  const headline = cleanText($("h1").first().text());
+  const separator = headline.indexOf(": ");
+  const artist = cleanText(headline.slice(0, separator));
+  const title = cleanText(headline.slice(separator + 2));
+  const grades = legacyLines($)
+    .map((line) => LEGACY_GRADE_PATTERN.exec(line)?.[1])
+    .filter((grade) => grade !== undefined)
+    .map(Number);
+  if (separator < 1 || !artist || !title || grades.length !== 1) return null;
+  const rawScore = grades[0]!;
+  if (rawScore < 1 || rawScore > LEGACY_SCALE_MAX) return null;
+  if (!isStudioAlbumReview($, artist, title)) return null;
+  return {
+    artist,
+    title,
+    rawScore,
+    scaleMax: LEGACY_SCALE_MAX,
+    publishedAt: parsePostDate($(".post_date .post_info_date").first().text()),
+  };
+}
+
+function legacyLines($: CheerioAPI): string[] {
+  return $(".post_content_wrapper p")
+    .toArray()
+    .flatMap((paragraph) =>
+      ($(paragraph).html() ?? "").split(/<br\s*\/?>/i).map((part) => cleanText(load(part).text())),
+    );
+}
 
 function readFactBox($: CheerioAPI): Map<string, string> {
   const facts = new Map<string, string>();

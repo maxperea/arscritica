@@ -63,7 +63,7 @@ export const gaffa: MusicSource = {
       if (!response.Index || response.Index <= skip) break;
       skip = response.Index;
     }
-    return [...new Set(urls)];
+    return uniqueBySlug(urls);
   },
 
   parseReview(url, html) {
@@ -89,6 +89,15 @@ export const gaffa: MusicSource = {
     };
   },
 };
+
+function uniqueBySlug(urls: string[]): string[] {
+  const bySlug = new Map<string, string>();
+  for (const url of urls) {
+    const slug = new URL(url).pathname.split("/").filter(Boolean).at(-1) ?? url;
+    if (!bySlug.has(slug)) bySlug.set(slug, url);
+  }
+  return [...bySlug.values()];
+}
 
 function overviewUrl(skip: number): string {
   const query = new URLSearchParams({
