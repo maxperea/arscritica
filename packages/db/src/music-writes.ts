@@ -78,6 +78,22 @@ export function latestAlbumReviewDate(db: Database, publicationId: number): stri
   return row?.latest ?? undefined;
 }
 
+export function albumReviewDuplicates(db: Database, review: AlbumReviewInput): boolean {
+  if (!review.critic) return false;
+  return (
+    getRow(
+      db.prepare(
+        `SELECT 1 AS found FROM album_reviews
+         WHERE publication_id = ? AND album_id = ? AND critic = ? AND raw_score = ?`,
+      ),
+      review.publicationId,
+      review.albumId,
+      review.critic,
+      review.rawScore,
+    ) !== undefined
+  );
+}
+
 export function findAlbumIdByMbid(db: Database, mbid: string): number | undefined {
   return getRow<{ id: number }>(db.prepare("SELECT id FROM albums WHERE mbid = ?"), mbid)?.id;
 }

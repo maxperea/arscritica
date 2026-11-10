@@ -1,4 +1,5 @@
 import {
+  albumReviewDuplicates,
   albumReviewExists,
   insertAlbumReview,
   latestAlbumReviewDate,
@@ -49,7 +50,7 @@ async function scrapeSource(
       serialize(async () => {
         const publishedAt = toIsoDateTime(review.publishedAt);
         const albumId = await resolveAlbumId(db, { ...review, publishedAt }, options.albumLookup);
-        insertAlbumReview(db, {
+        const input = {
           albumId,
           publicationId,
           url,
@@ -59,7 +60,8 @@ async function scrapeSource(
           scaleMax: review.scaleMax,
           critic: review.critic,
           publishedAt,
-        });
+        };
+        if (!albumReviewDuplicates(db, input)) insertAlbumReview(db, input);
       }),
   });
 }
