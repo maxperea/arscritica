@@ -14,6 +14,8 @@ const NOT_STUDIO_ALBUM_PATTERN =
 const COMPILATION_ARTIST_PATTERN =
   /^(v\/a|va|diverse artister|various artists|blandade artister)$/i;
 const CONCERT_PATTERN = /\bkonsert\w*|\bspelning\w*|\bturné\w*|\bi ?kväll\b|\bpubliken\b/i;
+const VENUE_PLACE_PATTERN =
+  /,\s*(Stockholm|Göteborg|Malmö|Uppsala|Lund|Umeå|Örebro|Linköping|Norrköping|Västerås|Helsingborg|Jönköping|Köpenhamn|Oslo|Way Out West|Roskilde|Bråvalla|Sweden Rock|Summerburst|Lollapalooza)\b/i;
 const VENUE_TITLE_PATTERN = /,\s*[A-ZÅÄÖ]|\b(Stockholm|Göteborg|Malmö|Uppsala|Lund|Arena)\b/;
 
 const SWEDISH_MONTHS = [
@@ -139,8 +141,14 @@ function isStudioAlbumReview(
   if (NOT_STUDIO_ALBUM_PATTERN.test(title)) return false;
   if (SINGLE_PATTERN.test(`${title} ${headline}`)) return false;
   if (!isMigratedRelease) return true;
+  if (VENUE_PLACE_PATTERN.test(title)) return false;
+  if (!VENUE_TITLE_PATTERN.test(title)) return true;
   const ingress = $(".article-page__limiting-text-container").first().text();
-  return !VENUE_TITLE_PATTERN.test(title) && !CONCERT_PATTERN.test(`${headline} ${ingress}`);
+  const otherTags = $('meta[property="article:tag"]')
+    .toArray()
+    .map((tag) => cleanText($(tag).attr("content") ?? ""))
+    .filter((tag) => tag.toLowerCase() !== artist.toLowerCase());
+  return otherTags.length === 0 && !CONCERT_PATTERN.test(`${headline} ${ingress}`);
 }
 
 function publishedAt($: CheerioAPI, urlMatch: RegExpExecArray): string | undefined {
