@@ -1,5 +1,6 @@
 import { load, type CheerioAPI } from "cheerio";
 import type { MusicSource } from "../../source";
+import { fetchListingPage } from "../listing";
 
 const LIST_URL = "https://www.svd.se/tagg/skivrecensioner";
 const ARTICLE_URL = /^https:\/\/www\.svd\.se\/a\//;
@@ -36,7 +37,13 @@ export const svd: MusicSource = {
   async listReviewUrls({ since, exhaustive, fetchText }) {
     const urls = new Set<string>();
     for (let page = 1; page <= (exhaustive ? Infinity : MAX_PAGES); page++) {
-      const $ = load(await fetchText(page === 1 ? LIST_URL : `${LIST_URL}?page=${page}`));
+      const html = await fetchListingPage(
+        fetchText,
+        page === 1 ? LIST_URL : `${LIST_URL}?page=${page}`,
+        page,
+      );
+      if (html === undefined) break;
+      const $ = load(html);
       const teasers = $("article a.teaser")
         .toArray()
         .map((link) => ({
