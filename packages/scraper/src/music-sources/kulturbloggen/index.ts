@@ -7,7 +7,8 @@ const RECORD_REVIEW_CATEGORY_ID = 22;
 const FACT_BLOCK_LINE_COUNT = 5;
 const BARE_SCORE_PATTERN = /^([1-5])(?:$|(?=\p{Lu}\p{Ll}))/u;
 const LABELED_SCORE_PATTERN = /^Betyg(?::\s*|\s+)([1-5])(?:\s*(?:\/|av)\s*5)?$/i;
-const LABELED_ARTIST_PATTERN = /^Artist(?::\s*|\s+)(.+)$/;
+const LABELED_ARTIST_PATTERN = /^(?:Artist|Band)(?::\s*|\s+)(.+)$/;
+const HEADING_PATTERN = /^([^:]+?):\s+(.+)$/;
 const LABELED_TITLE_PATTERN = /^(?:Titel|Album)(?::\s*|\s+)(.+)$/;
 const ROUNDUP_HEADLINE_PATTERN = /veckans skiv/i;
 const COMPILATION_ARTIST_PATTERN = /^(v\/a|various artists|diverse artister|blandade artister)$/i;
@@ -67,12 +68,19 @@ function contentLines(paragraphs: string[]): string[] {
 }
 
 function labeledFacts(lines: string[]): AlbumFacts | null {
-  const scores = matches(lines, LABELED_SCORE_PATTERN);
-  if (scores.length === 0) return null;
+  const scores = new Set(matches(lines, LABELED_SCORE_PATTERN));
+  if (scores.size !== 1) return null;
+  const rawScore = Number([...scores][0]);
   const artists = matches(lines, LABELED_ARTIST_PATTERN);
   const titles = matches(lines, LABELED_TITLE_PATTERN);
-  if (scores.length !== 1 || artists.length !== 1 || titles.length !== 1) return null;
-  return { artist: artists[0]!, title: titles[0]!, rawScore: Number(scores[0]) };
+  if (artists.length === 1 && titles.length === 1) {
+    return { artist: artists[0]!, title: titles[0]!, rawScore };
+  }
+  const heading = HEADING_PATTERN.exec(lines[0] ?? "");
+  if (artists.length || titles.length || !heading || !LABELED_SCORE_PATTERN.test(lines[1] ?? "")) {
+    return null;
+  }
+  return { artist: cleanText(heading[1]!), title: cleanText(heading[2]!), rawScore };
 }
 
 function bareFacts(lines: string[]): AlbumFacts | null {
