@@ -39,11 +39,39 @@ test("finds an album with its year, track count and cover", async () => {
   assert.equal(requests.length, 3);
 });
 
-test("leaves releases after the review or long before it unmatched", () => {
+test("allows a year of release-date slack and older albums with distinctive titles", () => {
   const groups = search["release-groups"];
-  assert.equal(pickReleaseGroup(groups, "Robyn", "Honey", 2017), undefined);
-  assert.equal(pickReleaseGroup(groups, "Robyn", "Honey", 2026), undefined);
+  assert.equal(pickReleaseGroup(groups, "Robyn", "Honey", 2016), undefined);
+  assert.equal(pickReleaseGroup(groups, "Robyn", "Honey", 2017)?.title, "Honey");
+  assert.equal(pickReleaseGroup(groups, "Robyn", "Honey", 2026)?.title, "Honey");
   assert.equal(pickReleaseGroup(groups, "The Robyn", "Honey", 2019)?.title, "Honey");
+  const selfTitled = { ...groups[1], id: "self", title: "Robyn" };
+  assert.equal(pickReleaseGroup([selfTitled], "Robyn", "Robyn", 2026), undefined);
+});
+
+test("matches spelling variants of titles and artist credits", () => {
+  const album = search["release-groups"][1];
+  const credit = (names: string[]) =>
+    names.map((name, index) => ({
+      name,
+      joinphrase: index < names.length - 1 ? " & " : "",
+      artist: { id: name, name },
+    }));
+  const duo = {
+    ...album,
+    title: "The River & the Thread",
+    "artist-credit": credit(["Future", "Metro Boomin"]),
+  };
+  assert.equal(
+    pickReleaseGroup([duo], "Metro Boomin och Future", "The River And The Thread", 2018)?.id,
+    album.id,
+  );
+  assert.equal(pickReleaseGroup([album], "Robyn -", "Honey EP", 2018)?.id, album.id);
+  assert.equal(pickReleaseGroup([album], "Robyn", "Honey: Deluxe", 2018)?.id, album.id);
+  const longer = { ...album, title: "Wizards on the Beach" };
+  assert.equal(pickReleaseGroup([longer], "Robyn", "Wizard on the Beach", 2018)?.id, album.id);
+  const sequel = { ...album, title: "Necessary, Pt. 2" };
+  assert.equal(pickReleaseGroup([sequel], "Robyn", "Necessary, Pt. 3", 2018), undefined);
 });
 
 test("prefers the earliest release and leaves same-year twins unmatched", () => {

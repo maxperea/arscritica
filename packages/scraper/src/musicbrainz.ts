@@ -1,6 +1,15 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import type { AlbumKind } from "@arscritica/db";
-import { normalizeTitle } from "@arscritica/db/text";
+import {
+  cleanArtist,
+  creditMatches,
+  NAME_JOINER,
+  nameKeys,
+  pickCandidate,
+  titleTier,
+  titleVariants,
+  type Credit,
+} from "./album-match";
 
 export const MUSICBRAINZ_USER_AGENT =
   "ArsCriticaBot/0.1 ( https://github.com/maxperea/arscritica )";
@@ -8,7 +17,6 @@ export const MUSICBRAINZ_USER_AGENT =
 const API = "https://musicbrainz.org/ws/2";
 const COVER_ART = "https://coverartarchive.org";
 const ALLOWED_SECONDARY_TYPES = new Set(["Soundtrack", "Mixtape/Street"]);
-const MAX_YEARS_BEFORE_REVIEW = 2;
 const MAX_ATTEMPTS = 4;
 
 export interface MusicBrainzAlbum {
@@ -17,7 +25,7 @@ export interface MusicBrainzAlbum {
   artistCredit: string;
   artist?: { mbid: string; name: string };
   kind: AlbumKind;
-  year: number;
+  year?: number;
   trackCount?: number;
   coverUrl?: string;
   coverThumbnailUrl?: string;
@@ -72,14 +80,27 @@ export class MusicBrainzClient implements AlbumLookup {
     title: string,
     reviewedYear?: number,
   ): Promise<MusicBrainzAlbum | undefined> {
-    const query =
+    const name = cleanArtist(artist);
+    const types = "(primarytype:album OR primarytype:ep)";
+    const byTitle = await this.searchReleaseGroups(
       `releasegroup:"${escapeQuery(title)}" AND ` +
-      `(artist:"${escapeQuery(artist)}" OR artistname:"${escapeQuery(artist)}") AND ` +
-      "(primarytype:album OR primarytype:ep)";
-    const search = await this.json<{ "release-groups"?: ReleaseGroup[] }>(
-      `${API}/release-group/?query=${encodeURIComponent(query)}&limit=25&fmt=json`,
+        `(artist:"${escapeQuery(name)}" OR artistname:"${escapeQuery(name)}") AND ${types}`,
+      25,
     );
-    const group = pickReleaseGroup(search?.["release-groups"] ?? [], artist, title, reviewedYear);
+    let group = pickReleaseGroup(byTitle, artist, title, reviewedYear);
+    if (!group) {
+      const leadArtist = name.split(NAME_JOINER)[0]!;
+      const byArtist = await this.searchReleaseGroups(
+        `(artist:"${escapeQuery(leadArtist)}" OR artistname:"${escapeQuery(leadArtist)}") AND ${types}`,
+        100,
+      );
+      group = pickReleaseGroup(
+        uniqueGroups([...byTitle, ...byArtist]),
+        artist,
+        title,
+        reviewedYear,
+      );
+    }
     if (!group) return undefined;
 
     const credits = group["artist-credit"] ?? [];
@@ -94,11 +115,35 @@ export class MusicBrainzClient implements AlbumLookup {
       artistCredit: creditName(credits),
       artist: credits[0] ? { mbid: credits[0].artist.id, name: credits[0].artist.name } : undefined,
       kind: group["primary-type"] === "EP" ? "ep" : "album",
-      year: releaseYear(group)!,
+      year: releaseYear(group),
       trackCount,
       coverUrl: cover ? `${coverUrl}-500` : undefined,
       coverThumbnailUrl: cover ? `${coverUrl}-250` : undefined,
     };
+  }
+
+  async isNonAlbumRelease(artist: string, title: string): Promise<boolean> {
+    const name = cleanArtist(artist);
+    const groups = await this.searchReleaseGroups(
+      `releasegroup:"${escapeQuery(title)}" AND ` +
+        `(artist:"${escapeQuery(name)}" OR artistname:"${escapeQuery(name)}")`,
+      25,
+    );
+    const reviewNames = nameKeys(artist);
+    const review = titleVariants(title);
+    return groups.some(
+      (group) =>
+        !isAlbumGroup(group) &&
+        titleTier(group.title, review, reviewNames) <= 1 &&
+        creditMatches(creditOf(group["artist-credit"] ?? []), reviewNames),
+    );
+  }
+
+  private async searchReleaseGroups(query: string, limit: number): Promise<ReleaseGroup[]> {
+    const search = await this.json<{ "release-groups"?: ReleaseGroup[] }>(
+      `${API}/release-group/?query=${encodeURIComponent(query)}&limit=${limit}&fmt=json`,
+    );
+    return search?.["release-groups"] ?? [];
   }
 
   private async trackCount(releaseGroupId: string): Promise<number | undefined> {
@@ -163,41 +208,36 @@ export function pickReleaseGroup(
   title: string,
   reviewedYear?: number,
 ): ReleaseGroup | undefined {
-  const titleKey = normalizeTitle(title);
-  const artistKey = artistMatchKey(artist);
-  const candidates = groups.filter((group) => {
-    const year = releaseYear(group);
-    return (
-      (group["primary-type"] === "Album" || group["primary-type"] === "EP") &&
-      (group["secondary-types"] ?? []).every((type) => ALLOWED_SECONDARY_TYPES.has(type)) &&
-      normalizeTitle(group.title) === titleKey &&
-      creditMatches(group["artist-credit"] ?? [], artistKey) &&
-      year !== undefined &&
-      (reviewedYear === undefined ||
-        (year <= reviewedYear && year >= reviewedYear - MAX_YEARS_BEFORE_REVIEW))
-    );
-  });
-  const earliestYear = Math.min(...candidates.map((group) => releaseYear(group)!));
-  const earliest = candidates.filter((group) => releaseYear(group) === earliestYear);
-  return earliest.length === 1 ? earliest[0] : undefined;
-}
-
-function creditMatches(credits: ArtistCredit[], artistKey: string): boolean {
-  if (!credits.length) return false;
-  const keys = [
-    creditName(credits),
-    credits.map((credit) => credit.name).join(" "),
-    ...credits.map((credit) => credit.name),
-    ...credits.map((credit) => credit.artist.name),
-  ].map(artistMatchKey);
-  return keys.includes(artistKey);
-}
-
-function artistMatchKey(name: string): string {
-  return normalizeTitle(name.replace(/\s+(&|och|and|x|feat\.?|med)\s+/gi, " ")).replace(
-    /^the /,
-    "",
+  const reviewNames = nameKeys(artist);
+  const albums = groups.filter(
+    (group) =>
+      isAlbumGroup(group) && creditMatches(creditOf(group["artist-credit"] ?? []), reviewNames),
   );
+  return pickCandidate(
+    albums.map((group) => ({ item: group, title: group.title, year: releaseYear(group) })),
+    title,
+    reviewNames,
+    reviewedYear,
+  );
+}
+
+function isAlbumGroup(group: ReleaseGroup): boolean {
+  return (
+    (group["primary-type"] === "Album" || group["primary-type"] === "EP") &&
+    (group["secondary-types"] ?? []).every((type) => ALLOWED_SECONDARY_TYPES.has(type))
+  );
+}
+
+function uniqueGroups(groups: ReleaseGroup[]): ReleaseGroup[] {
+  return [...new Map(groups.map((group) => [group.id, group])).values()];
+}
+
+function creditOf(credits: ArtistCredit[]): Credit {
+  return {
+    joined: creditName(credits),
+    names: credits.map((credit) => credit.name),
+    artistNames: credits.map((credit) => credit.artist.name),
+  };
 }
 
 function creditName(credits: ArtistCredit[]): string {
