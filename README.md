@@ -28,6 +28,8 @@ Other commands:
 ```sh
 pnpm scrape [--source <slug>]... [--since 2026-01-01] [--limit 20] [--db path]
 pnpm scrape-music [--source <slug>]... [--since …] [--limit …] [--history]  # album reviews, matched via MusicBrainz
+pnpm rematch-albums [--days 30] [--db path]  # retry MusicBrainz for hidden albums
+pnpm discogs-match --releases <releases.xml.gz> --masters <masters.xml.gz> [--candidates cache.json] [--db path]  # local Discogs fallback
 pnpm backfill-details [--db path]  # fetch TMDB genres, IMDb ids and overviews (English-only ones go to overview_en for translation)
 pnpm refresh-watch-providers [--db path]  # fetch Swedish streaming/rent/buy options from TMDB (JustWatch data)
 pnpm refresh-watch-offers [--db path]  # fetch direct links and prices from Watchmode (needs WATCHMODE_API_KEY)
@@ -58,13 +60,20 @@ Music lives in separate tables so film data and queries are untouched:
 
 - `music_publications(id, slug, name, url, paywalled)`
 - `artists(id, mbid, name, slug)`
-- `albums(id, mbid?, artist_id?, artist_credit, title, kind, year, track_count, cover_url, cover_thumbnail_url, slug, artist_key, title_key)`
+- `albums(id, mbid?, discogs_master_id?, discogs_release_id?, metadata_source?, artist_id?, artist_credit, title, kind, year, track_count, cover_url, cover_thumbnail_url, slug, artist_key, title_key)`
 - `album_reviews(id, album_id, publication_id, url UNIQUE, source_artist, source_title, raw_score, scale_max, normalized_score, critic?, published_at?, scraped_at)`
 
 Albums are matched on artist and title against MusicBrainz release groups (albums and EPs only).
-The first release year must not be after the review year nor more than two years before it, and
-the earliest year wins; anything ambiguous stays unmatched (`mbid` NULL) and hidden, like films
-without a TMDB id. Music sources implement `MusicSource` and live in
+The earliest first release year from two years before the review year up to the review year
+wins; failing that, a release dated the year after the review, an undated release, or an older
+album with a distinctive (not self-titled) title. Anything ambiguous stays unmatched
+(`metadata_source` NULL) and hidden, like films without a TMDB id.
+
+Albums still hidden can be matched against the monthly [Discogs data dumps](https://data.discogs.com/)
+(CC0) with `pnpm discogs-match`, run locally since the releases dump is over 10 GB. It uses the
+same rules but only the year window (or the year after), needs an Album/LP/EP format and no
+single or compilation format, and skips anything MusicBrainz lists as live, compilation, remix or
+single. Discogs albums have no cover. Music sources implement `MusicSource` and live in
 `packages/scraper/src/music-sources/<slug>`.
 
 Each review keeps its raw score and scale, plus a normalized 0–100 score
@@ -146,5 +155,6 @@ repository secret.
 
 Movie data and posters come from [TMDB](https://www.themoviedb.org/). This product uses the TMDB
 API but is not endorsed or certified by TMDB. Album data comes from
-[MusicBrainz](https://musicbrainz.org/) and covers from the
+[MusicBrainz](https://musicbrainz.org/) and [Discogs](https://www.discogs.com/) (CC0 data dumps)
+and covers from the
 [Cover Art Archive](https://coverartarchive.org/).

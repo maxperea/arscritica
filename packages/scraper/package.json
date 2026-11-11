@@ -14,7 +14,8 @@
     "refresh-watch-providers": "tsx src/refresh-watch-providers.ts",
     "refresh-watch-offers": "tsx src/refresh-watch-offers.ts",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "discogs-match": "tsx src/discogs-match.ts"
   },
   "dependencies": {
     "@arscritica/db": "workspace:*",
