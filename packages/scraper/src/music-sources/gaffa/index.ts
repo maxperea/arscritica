@@ -156,10 +156,12 @@ function publishedAt($: CheerioAPI, urlMatch: RegExpExecArray): string | undefin
   const published = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2}:\d{2})$/.exec(
     $('meta[property="article:published_time"]').attr("content")?.trim() ?? "",
   );
-  if (published && (kind === "album" || published[1] === urlYear)) {
+  const month = SWEDISH_MONTHS.indexOf(urlMonthName!) + 1;
+  const sameMonthNextYear =
+    Number(published?.[1]) === Number(urlYear) + 1 && Number(published?.[2]) === month;
+  if (published && (kind === "album" || published[1] === urlYear || sameMonthNextYear)) {
     return stockholmIso(`${published[1]}-${published[2]}-${published[3]}`, published[4]!);
   }
-  const month = SWEDISH_MONTHS.indexOf(urlMonthName!) + 1;
   if (month === 0) return undefined;
   return stockholmIso(`${urlYear}-${String(month).padStart(2, "0")}-01`, "00:00:00");
 }
