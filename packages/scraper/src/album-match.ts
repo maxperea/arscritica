@@ -83,9 +83,18 @@ export function titleTier(candidate: string, review: TitleVariants, artistNames:
   return 3;
 }
 
+export function isSelfTitled(titleKey: string, artistNames: string[]): boolean {
+  const bare = (key: string) => compact(key.replace(/\b(the|and|och|x|med|with|feat)\b/g, ""));
+  return [...artistNames, artistNames.join(" ")].some((name) => bare(name) === bare(titleKey));
+}
+
+const GENERIC_TITLE =
+  /^(untitled|s t|self titled|the album)$|\b(symphon(y|ies)|sonatas?|concertos?|variations|quartets?|complete|works)\b/;
+
 export function isDistinctiveTitle(titleKey: string, artistNames: string[]): boolean {
   return (
-    !artistNames.includes(titleKey.replace(/^the /, "")) &&
+    !isSelfTitled(titleKey, artistNames) &&
+    !GENERIC_TITLE.test(titleKey) &&
     titleKey.replace(/\b(\d+|[ivx]+)\b/g, "").replace(/ /g, "").length >= 4
   );
 }

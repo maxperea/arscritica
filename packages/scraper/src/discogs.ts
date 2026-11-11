@@ -1,7 +1,14 @@
 import { createReadStream } from "node:fs";
 import { createGunzip } from "node:zlib";
 import type { AlbumInput } from "@arscritica/db";
-import { creditMatches, nameKeys, pickCandidate, titleVariants, type Credit } from "./album-match";
+import {
+  creditMatches,
+  isSelfTitled,
+  nameKeys,
+  pickCandidate,
+  titleVariants,
+  type Credit,
+} from "./album-match";
 
 export interface DiscogsRelease {
   id: number;
@@ -116,7 +123,7 @@ export function pickDiscogsAlbum(
     (group) => creditMatches(group.credit, reviewNames) && isAlbumFormat(group.formats),
   );
   const review = titleVariants(title);
-  if (reviewNames.includes(review.key.replace(/^the /, ""))) {
+  if (isSelfTitled(review.key, reviewNames)) {
     const sameTitle = groups.filter((group) => titleVariants(group.title).key === review.key);
     if (sameTitle.length !== 1) return undefined;
   }
