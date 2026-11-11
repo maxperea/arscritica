@@ -22,7 +22,7 @@ export async function resolveAlbumId(
   const candidates = findAlbums(db, review.artist, review.title);
   const known = candidates.filter(
     (album) =>
-      album.mbid !== null &&
+      album.matched &&
       album.year !== null &&
       reviewedYear !== undefined &&
       album.year <= reviewedYear &&
@@ -31,7 +31,7 @@ export async function resolveAlbumId(
   if (known.length === 1) return known[0]!.id;
 
   const found = await lookupSafely(review, reviewedYear, lookup);
-  const untracked = candidates.filter((album) => album.mbid === null);
+  const untracked = candidates.filter((album) => !album.matched);
   if (!found) {
     const sameRelease = untracked.filter((album) =>
       reviewedWithin(album, reviewedYear === undefined ? undefined : reviewedYear - 1, 2),

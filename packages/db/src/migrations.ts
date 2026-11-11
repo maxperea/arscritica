@@ -151,4 +151,12 @@ export const migrations: string[] = [
   CREATE INDEX album_reviews_album_id ON album_reviews (album_id);
   CREATE INDEX album_reviews_publication_id ON album_reviews (publication_id);
   `,
+  `
+  ALTER TABLE albums ADD COLUMN metadata_source TEXT;
+  ALTER TABLE albums ADD COLUMN discogs_master_id INTEGER;
+  ALTER TABLE albums ADD COLUMN discogs_release_id INTEGER;
+  UPDATE albums SET metadata_source = 'musicbrainz' WHERE mbid IS NOT NULL;
+  CREATE UNIQUE INDEX albums_discogs_master_id ON albums (discogs_master_id);
+  CREATE UNIQUE INDEX albums_discogs_release_id ON albums (discogs_release_id);
+  `,
 ];

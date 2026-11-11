@@ -39,7 +39,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <a href="https://www.themoviedb.org/">TMDB</a>. Streamingdata från{" "}
           <a href="https://www.justwatch.com/se">JustWatch</a> och{" "}
           <a href="https://www.watchmode.com/">Watchmode</a>. Musikdata från{" "}
-          <a href="https://musicbrainz.org/">MusicBrainz</a> och omslag från{" "}
+          <a href="https://musicbrainz.org/">MusicBrainz</a> och{" "}
+          <a href="https://www.discogs.com/">Discogs</a>, omslag från{" "}
           <a href="https://coverartarchive.org/">Cover Art Archive</a>.
         </footer>
       </body>

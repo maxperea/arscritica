@@ -109,6 +109,15 @@ export function albumDescription(
   );
 }
 
+function albumSourceUrl(
+  album: Pick<AlbumDetail, "mbid" | "discogsMasterId" | "discogsReleaseId">,
+): string | undefined {
+  if (album.mbid) return `https://musicbrainz.org/release-group/${album.mbid}`;
+  if (album.discogsMasterId) return `https://www.discogs.com/master/${album.discogsMasterId}`;
+  if (album.discogsReleaseId) return `https://www.discogs.com/release/${album.discogsReleaseId}`;
+  return undefined;
+}
+
 export function albumJsonLd(album: AlbumDetail, path: string): string {
   const data = {
     "@context": "https://schema.org",
@@ -120,7 +129,7 @@ export function albumJsonLd(album: AlbumDetail, path: string): string {
     ...(album.year ? { datePublished: String(album.year) } : {}),
     ...(album.coverUrl ? { image: album.coverUrl } : {}),
     ...(album.trackCount ? { numTracks: album.trackCount } : {}),
-    sameAs: `https://musicbrainz.org/release-group/${album.mbid}`,
+    ...(albumSourceUrl(album) ? { sameAs: albumSourceUrl(album) } : {}),
     aggregateRating: {
       "@type": "AggregateRating",
       ratingValue: album.score,

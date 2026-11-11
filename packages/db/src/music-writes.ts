@@ -13,6 +13,8 @@ export interface ArtistInput {
 
 export interface AlbumInput {
   mbid?: string;
+  discogsMasterId?: number;
+  discogsReleaseId?: number;
   artist?: ArtistInput;
   artistCredit: string;
   title: string;
@@ -25,7 +27,7 @@ export interface AlbumInput {
 
 export interface AlbumCandidate {
   id: number;
-  mbid: string | null;
+  matched: boolean;
   year: number | null;
   firstReviewedYear: number | null;
 }
@@ -98,25 +100,33 @@ export function findAlbumIdByMbid(db: Database, mbid: string): number | undefine
   return getRow<{ id: number }>(db.prepare("SELECT id FROM albums WHERE mbid = ?"), mbid)?.id;
 }
 
+export function findAlbumIdByDiscogs(db: Database, album: AlbumInput): number | undefined {
+  return getRow<{ id: number }>(
+    db.prepare("SELECT id FROM albums WHERE discogs_master_id = ? OR discogs_release_id = ?"),
+    album.discogsMasterId ?? null,
+    album.discogsReleaseId ?? null,
+  )?.id;
+}
+
 export function findAlbums(db: Database, artist: string, title: string): AlbumCandidate[] {
-  return allRows<AlbumCandidate>(
+  return allRows<Omit<AlbumCandidate, "matched"> & { matched: number }>(
     db.prepare(
-      `SELECT id, mbid, year,
+      `SELECT id, metadata_source IS NOT NULL AS matched, year,
          (SELECT CAST(MIN(strftime('%Y', COALESCE(published_at, scraped_at))) AS INTEGER)
           FROM album_reviews WHERE album_id = albums.id) AS firstReviewedYear
        FROM albums WHERE artist_key = ? AND title_key = ?`,
     ),
     normalizeTitle(artist),
     normalizeTitle(title),
-  );
+  ).map((album) => ({ ...album, matched: album.matched === 1 }));
 }
 
 export function insertAlbum(db: Database, album: AlbumInput): number {
   const result = db
     .prepare(
-      `INSERT INTO albums (mbid, artist_id, artist_credit, title, kind, year, track_count,
+      `INSERT INTO albums (mbid, discogs_master_id, discogs_release_id, metadata_source, artist_id, artist_credit, title, kind, year, track_count,
          cover_url, cover_thumbnail_url, slug, artist_key, title_key)
-       VALUES (:mbid, :artistId, :artistCredit, :title, :kind, :year, :trackCount,
+       VALUES (:mbid, :discogsMasterId, :discogsReleaseId, :metadataSource, :artistId, :artistCredit, :title, :kind, :year, :trackCount,
          :coverUrl, :coverThumbnailUrl, :slug, :artistKey, :titleKey)`,
     )
     .run({
@@ -128,7 +138,8 @@ export function insertAlbum(db: Database, album: AlbumInput): number {
 
 export function attachAlbumData(db: Database, albumId: number, album: AlbumInput): void {
   db.prepare(
-    `UPDATE albums SET mbid = :mbid, artist_id = :artistId, artist_credit = :artistCredit,
+    `UPDATE albums SET mbid = :mbid, discogs_master_id = :discogsMasterId,
+       discogs_release_id = :discogsReleaseId, metadata_source = :metadataSource, artist_id = :artistId, artist_credit = :artistCredit,
        title = :title, kind = :kind, year = :year, track_count = :trackCount,
        cover_url = :coverUrl, cover_thumbnail_url = :coverThumbnailUrl,
        artist_key = :artistKey, title_key = :titleKey
@@ -178,6 +189,13 @@ function upsertArtist(db: Database, artist: ArtistInput): number {
 function albumColumns(db: Database, album: AlbumInput) {
   return {
     mbid: album.mbid ?? null,
+    discogsMasterId: album.discogsMasterId ?? null,
+    discogsReleaseId: album.discogsReleaseId ?? null,
+    metadataSource: album.mbid
+      ? "musicbrainz"
+      : album.discogsMasterId || album.discogsReleaseId
+        ? "discogs"
+        : null,
     artistId: album.artist ? upsertArtist(db, album.artist) : null,
     artistCredit: album.artistCredit,
     title: album.title,
@@ -212,7 +230,7 @@ export function recentUnmatchedAlbums(db: Database, days: number): UnmatchedAlbu
       `SELECT a.id, a.artist_credit AS artist, a.title,
          MIN(COALESCE(r.published_at, r.scraped_at)) AS reviewedAt
        FROM albums a JOIN album_reviews r ON r.album_id = a.id
-       WHERE a.mbid IS NULL
+       WHERE a.metadata_source IS NULL
        GROUP BY a.id
        HAVING reviewedAt >= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?)`,
     ),

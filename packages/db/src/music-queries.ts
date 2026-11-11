@@ -33,7 +33,9 @@ export interface AlbumReview {
 }
 
 export interface AlbumDetail extends AlbumSummary {
-  mbid: string;
+  mbid: string | null;
+  discogsMasterId: number | null;
+  discogsReleaseId: number | null;
   coverUrl: string | null;
   trackCount: number | null;
   reviews: AlbumReview[];
@@ -64,7 +66,7 @@ export interface MusicPublicationDetail extends PublicationSummary {
 }
 
 const reviewedAt = "COALESCE(r.published_at, r.scraped_at)";
-const matchedAlbum = "a.mbid IS NOT NULL";
+const matchedAlbum = "a.metadata_source IS NOT NULL";
 
 const albumSummaryColumns = `
   a.slug, a.title, a.artist_credit AS artistCredit, ar.slug AS artistSlug, a.kind, a.year,
@@ -122,9 +124,13 @@ export function getAlbum(db: Database, slug: string): AlbumDetail | undefined {
     slug,
   );
   if (!album) return undefined;
-  const details = getRow<{ mbid: string; coverUrl: string | null; trackCount: number | null }>(
+  const details = getRow<
+    Pick<AlbumDetail, "mbid" | "discogsMasterId" | "discogsReleaseId" | "coverUrl" | "trackCount">
+  >(
     db.prepare(
-      "SELECT mbid, cover_url AS coverUrl, track_count AS trackCount FROM albums WHERE slug = ?",
+      `SELECT mbid, discogs_master_id AS discogsMasterId, discogs_release_id AS discogsReleaseId,
+         cover_url AS coverUrl, track_count AS trackCount
+       FROM albums WHERE slug = ?`,
     ),
     slug,
   )!;
