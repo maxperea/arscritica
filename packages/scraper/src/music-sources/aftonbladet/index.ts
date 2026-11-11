@@ -34,6 +34,7 @@ const MAX_FACT_LINE_LENGTH = 100;
 const NOT_A_FACT_LINE_PATTERN = /^(så många|plats:|publik:)/i;
 const SINGLE_TEXT_PATTERN = /\b(singel\w*|singlar|låt|låten|spellista)\b/i;
 const PROSE_ARTIST_PATTERN = /\b(nya|album|albumet|skivan|släpper|recension)\b/i;
+const PROSE_ARTIST_TAIL_PATTERN = /\s(på|är)$|\sär\s|\soch\s[a-zåäö]+$|\s[-–]\s/;
 const QUOTED_PATTERN = /^[”"“](.+)[”"“]$/;
 const ALBUM_LABELS = new Set(["ALBUM", "EP"]);
 const LABEL_PATTERN = /^([A-ZÅÄÖ]{2,})\s/;
@@ -132,7 +133,7 @@ function parseItemName(name: string): Pick<ScrapedAlbumReview, "artist" | "title
     return match && (titleFirst ? [match[2]!, match[1]!] : [match[1]!, match[2]!]);
   }).find(Boolean);
   if (!parsed) return null;
-  const artist = parsed[0]!.trim();
+  const artist = parsed[0]!.replace(/\s*[-–]\s*$/, "").trim();
   const quotedTitle = QUOTED_PATTERN.exec(parsed[1]!)?.[1];
   const title = (quotedTitle ?? parsed[1]!).trim();
   if (
@@ -142,6 +143,7 @@ function parseItemName(name: string): Pick<ScrapedAlbumReview, "artist" | "title
     QUOTE_PATTERN.test(artist) ||
     VARIOUS_ARTISTS_PATTERN.test(artist) ||
     PROSE_ARTIST_PATTERN.test(artist) ||
+    PROSE_ARTIST_TAIL_PATTERN.test(artist) ||
     NOT_AN_ALBUM_PATTERN.test(title)
   ) {
     return null;

@@ -73,8 +73,18 @@ function defaultSince(history: boolean | undefined): Date | undefined {
   return since;
 }
 
+const NOT_AN_ALBUM_TITLE =
+  /[-–]\s*live$|\(live\)|\blive (at|in|från|på|i)\b|\bbootleg series\b|\bdj-kicks\b|\bhommage\b|\btribute concert\b|\bfestival\s+\d{4}$/i;
+const VARIOUS_ARTISTS = /\b(m\.? ?fl\.?|mfl|med flera)$|^(en )?hyllning till\b/i;
+
+export function isAlbumReview(artist: string, title: string): boolean {
+  const roundup = artist.includes(" / ") && title.includes(" / ");
+  return !roundup && !NOT_AN_ALBUM_TITLE.test(title) && !VARIOUS_ARTISTS.test(artist);
+}
+
 function isValid(review: ScrapedAlbumReview): boolean {
   return (
+    isAlbumReview(review.artist, review.title) &&
     review.artist.trim().length > 0 &&
     review.title.trim().length > 0 &&
     Number.isFinite(review.rawScore) &&
