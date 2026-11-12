@@ -74,7 +74,7 @@ function defaultSince(history: boolean | undefined): Date | undefined {
 }
 
 const NOT_AN_ALBUM_TITLE =
-  /[-–]\s*live$|\(live\)|\blive (at|in|från|på|i)\b|\bbootleg series\b|\bdj-kicks\b|\bhommage\b|\btribute concert\b|\bfestival\s+\d{4}$/i;
+  /[-–]\s*live$|\(live\)|\blive (at|in|från|på|i)\b|\blajv\b|\bbootleg series\b|\bdj-kicks\b|\bhommage\b|\btribute concert\b|\bfestival\s+\d{4}$/i;
 const VARIOUS_ARTISTS = /\b(m\.? ?fl\.?|mfl|med flera)$|^(en )?hyllning till\b/i;
 
 export function isAlbumReview(artist: string, title: string): boolean {
