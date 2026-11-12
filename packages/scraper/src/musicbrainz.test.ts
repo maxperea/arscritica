@@ -67,7 +67,9 @@ test("matches spelling variants of titles and artist credits", () => {
     album.id,
   );
   assert.equal(pickReleaseGroup([album], "Robyn -", "Honey EP", 2018)?.id, album.id);
-  assert.equal(pickReleaseGroup([album], "Robyn", "Honey: Deluxe", 2018)?.id, album.id);
+  assert.equal(pickReleaseGroup([album], "Robyn", "Honey: Versions", 2018), undefined);
+  const subtitled = { ...album, title: "Honey: Music From the Film" };
+  assert.equal(pickReleaseGroup([subtitled], "Robyn", "Honey", 2018)?.id, album.id);
   const longer = { ...album, title: "Wizards on the Beach" };
   assert.equal(pickReleaseGroup([longer], "Robyn", "Wizard on the Beach", 2018)?.id, album.id);
   const sequel = { ...album, title: "Necessary, Pt. 2" };

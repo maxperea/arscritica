@@ -58,7 +58,8 @@ if (cachePath && !existsSync(cachePath)) {
 const musicBrainz = new MusicBrainzClient();
 const releasesByTitle = new Map<string, DiscogsRelease[]>();
 for (const release of releases) {
-  for (const key of titleVariants(release.title).loose) {
+  const variants = titleVariants(release.title);
+  for (const key of new Set([...variants.loose, variants.main ?? ""].filter(Boolean))) {
     releasesByTitle.set(key, [...(releasesByTitle.get(key) ?? []), release]);
   }
 }
@@ -120,7 +121,10 @@ async function extractCandidates() {
   for await (const xml of readDiscogsDump(resolve(values.releases)!, "release")) {
     const title = releaseTitle(xml);
     if (!title) continue;
-    const artists = [...titleVariants(title).loose].flatMap((key) => targets.get(key) ?? []);
+    const variants = titleVariants(title);
+    const artists = [...variants.loose, variants.main ?? ""].flatMap(
+      (key) => targets.get(key) ?? [],
+    );
     if (!artists.length) continue;
     const credit = releaseCredit(xml);
     if (artists.some((names) => creditMatches(credit, names))) releases.push(parseRelease(xml));

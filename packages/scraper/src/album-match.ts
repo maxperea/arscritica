@@ -60,6 +60,7 @@ function earliest<T>(candidates: Candidate<T>[]): T | undefined {
 interface TitleVariants {
   key: string;
   loose: Set<string>;
+  main?: string;
 }
 
 export function titleVariants(title: string): TitleVariants {
@@ -67,8 +68,11 @@ export function titleVariants(title: string): TitleVariants {
   const bare = matchKey(title.replace(/\([^)]*\)|\[[^\]]*\]/g, " ")).replace(/ (ep|e p)$/, "");
   const forms = [key, bare, ...[key, bare].map((form) => form.replace(/^the /, ""))];
   const main = title.split(/:|\s[–-]\s/)[0]!;
-  if (main.length < title.length) forms.push(matchKey(main));
-  return { key, loose: new Set([...forms, ...forms.map(compact)].filter(Boolean)) };
+  return {
+    key,
+    loose: new Set([...forms, ...forms.map(compact)].filter(Boolean)),
+    main: main.length < title.length ? matchKey(main) || undefined : undefined,
+  };
 }
 
 export function titleTier(candidate: string, review: TitleVariants, artistNames: string[]): number {
@@ -76,6 +80,7 @@ export function titleTier(candidate: string, review: TitleVariants, artistNames:
   if (found.key === review.key) return 0;
   if (numerals(found.key) !== numerals(review.key)) return 3;
   if ([...found.loose].some((form) => review.loose.has(form))) return 1;
+  if (found.main && review.loose.has(found.main)) return 1;
   const prefixed = [...artistNames, ...artistNames.map((name) => name.split(" ").at(-1)!)];
   if (prefixed.some((name) => found.key === `${name} ${review.key}`)) return 1;
   const shortest = Math.min(found.key.length, review.key.length);
