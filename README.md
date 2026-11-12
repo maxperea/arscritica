@@ -72,8 +72,8 @@ album with a distinctive (not self-titled) title. Anything ambiguous stays unmat
 Albums still hidden can be matched against the monthly [Discogs data dumps](https://data.discogs.com/)
 (CC0) with `pnpm discogs-match`, run locally since the releases dump is over 10 GB. It uses the
 same rules but only the year window (or the year after), needs an Album/LP/EP format and no
-single or compilation format, and skips anything MusicBrainz lists as live, compilation, remix or
-single. Discogs albums have no cover. Music sources implement `MusicSource` and live in
+single or compilation format, and skips anything MusicBrainz lists as a live, compilation or remix
+release. Discogs albums have no cover. Music sources implement `MusicSource` and live in
 `packages/scraper/src/music-sources/<slug>`.
 
 Each review keeps its raw score and scale, plus a normalized 0–100 score

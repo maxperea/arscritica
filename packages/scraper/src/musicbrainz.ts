@@ -122,7 +122,7 @@ export class MusicBrainzClient implements AlbumLookup {
     };
   }
 
-  async isNonAlbumRelease(artist: string, title: string): Promise<boolean> {
+  async isLiveOrCompilation(artist: string, title: string): Promise<boolean> {
     const name = cleanArtist(artist);
     const groups = await this.searchReleaseGroups(
       `releasegroup:"${escapeQuery(title)}" AND ` +
@@ -133,7 +133,7 @@ export class MusicBrainzClient implements AlbumLookup {
     const review = titleVariants(title);
     return groups.some(
       (group) =>
-        !isAlbumGroup(group) &&
+        (group["secondary-types"] ?? []).some((type) => !ALLOWED_SECONDARY_TYPES.has(type)) &&
         titleTier(group.title, review, reviewNames) <= 1 &&
         creditMatches(creditOf(group["artist-credit"] ?? []), reviewNames),
     );

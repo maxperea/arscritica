@@ -87,7 +87,7 @@ for (const album of albums) {
     new Date(album.reviewedAt).getUTCFullYear(),
   );
   if (!found) continue;
-  const vetoed = await musicBrainz.isNonAlbumRelease(album.artist, album.title).catch(() => true);
+  const vetoed = await musicBrainz.isLiveOrCompilation(album.artist, album.title).catch(() => true);
   if (vetoed) {
     console.log(`vetoed\t${album.artist}\t${album.title}`);
     continue;
