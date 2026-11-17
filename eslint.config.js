@@ -20,5 +20,11 @@ export default tseslint.config(
       "@next/next/no-html-link-for-pages": "off",
     },
   },
+  {
+    files: ["apps/web/public/sw.js"],
+    languageOptions: {
+      globals: { self: "readonly", caches: "readonly", fetch: "readonly", URL: "readonly" },
+    },
+  },
   prettier,
 );

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ServiceWorker } from "@/components/service-worker";
 import { SectionSwitch, SiteNav } from "@/components/site-nav";
 import { siteName, siteOrigin } from "@/lib/seo";
 import "./globals.css";
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <a href="https://www.discogs.com/">Discogs</a>, omslag från{" "}
           <a href="https://coverartarchive.org/">Cover Art Archive</a>.
         </footer>
+        <ServiceWorker />
       </body>
     </html>
   );
