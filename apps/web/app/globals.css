@@ -18,6 +18,7 @@
 
 html {
   scrollbar-gutter: stable;
+  background: #fff;
 }
 
 body {
@@ -31,6 +32,7 @@ body {
   color: var(--text);
   background: var(--background);
   line-height: 1.5;
+  min-height: 100dvh;
 }
 
 a {
@@ -38,8 +40,10 @@ a {
   text-decoration: none;
 }
 
-a:hover {
-  text-decoration: underline;
+@media (hover: hover) {
+  a:hover {
+    text-decoration: underline;
+  }
 }
 
 :is(a, button, input, select, summary, [tabindex]):focus-visible {
@@ -679,7 +683,9 @@ main {
 
   .header-inner {
     min-height: 3.625rem;
-    gap: 0.75rem;
+    align-content: center;
+    gap: 0 0.75rem;
+    padding-block: 0.875rem 0;
   }
 
   .logo {
@@ -704,7 +710,19 @@ main {
   }
 
   .site-header .section-switch {
+    position: relative;
     padding-left: 0.75rem;
+    border-left: 0;
+  }
+
+  .site-header .section-switch::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    height: 1.125rem;
+    border-left: 1px solid var(--border);
+    transform: translateY(-50%);
   }
 
   .item-meta,
@@ -810,7 +828,6 @@ main {
   .header-inner {
     flex-wrap: wrap;
     gap: 0;
-    padding-top: 0.5rem;
   }
 
   .header-inner nav {
