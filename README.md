@@ -29,6 +29,7 @@ Other commands:
 pnpm scrape [--source <slug>]... [--since 2026-01-01] [--limit 20] [--db path]
 pnpm scrape-music [--source <slug>]... [--since …] [--limit …] [--history]  # album reviews, matched via MusicBrainz
 pnpm rematch-albums [--days 30] [--db path]  # retry MusicBrainz for hidden albums
+pnpm cover-thumbnails [--limit N] [--db path]  # 88px WebP list covers into apps/web/public/covers
 pnpm discogs-match --releases <releases.xml.gz> --masters <masters.xml.gz> [--candidates cache.json] [--db path]  # local Discogs fallback
 pnpm backfill-details [--db path]  # fetch TMDB genres, IMDb ids and overviews (English-only ones go to overview_en for translation)
 pnpm refresh-watch-providers [--db path]  # fetch Swedish streaming/rent/buy options from TMDB (JustWatch data)
@@ -73,7 +74,11 @@ Albums still hidden can be matched against the monthly [Discogs data dumps](http
 (CC0) with `pnpm discogs-match`, run locally since the releases dump is over 10 GB. It uses the
 same rules but only the year window (or the year after), needs an Album/LP/EP format and no
 single or compilation format, and skips anything MusicBrainz lists as a live, compilation or remix
-release. Discogs albums have no cover. Music sources implement `MusicSource` and live in
+release. Discogs albums have no cover.
+
+Album lists use 88×88 WebP thumbnails of the Cover Art Archive covers, kept on the `covers`
+branch (`scripts/covers-branch.sh restore|persist`) and fetched once per album; failed downloads
+are retried after 30 days. Albums without a thumbnail fall back to the Cover Art Archive URL. Music sources implement `MusicSource` and live in
 `packages/scraper/src/music-sources/<slug>`.
 
 Each review keeps its raw score and scale, plus a normalized 0–100 score

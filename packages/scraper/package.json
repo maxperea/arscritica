@@ -10,6 +10,7 @@
     "scrape": "tsx src/cli.ts",
     "scrape-music": "tsx src/cli.ts --music",
     "rematch-albums": "tsx src/rematch-albums.ts",
+    "cover-thumbnails": "tsx src/cover-thumbnails.ts",
     "backfill-details": "tsx src/backfill-details.ts",
     "refresh-watch-providers": "tsx src/refresh-watch-providers.ts",
     "refresh-watch-offers": "tsx src/refresh-watch-offers.ts",
@@ -19,7 +20,8 @@
   },
   "dependencies": {
     "@arscritica/db": "workspace:*",
-    "cheerio": "^1.0.0"
+    "cheerio": "^1.0.0",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",

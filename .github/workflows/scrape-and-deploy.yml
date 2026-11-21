@@ -26,6 +26,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Restore database
         run: bash scripts/data-branch.sh restore
+      - name: Restore cover thumbnails
+        run: bash scripts/covers-branch.sh restore
       - run: pnpm db:init
       - name: Scrape
         if: github.event_name != 'push'
@@ -59,6 +61,14 @@ jobs:
         run: pnpm refresh-watch-offers
         env:
           WATCHMODE_API_KEY: ${{ secrets.WATCHMODE_API_KEY }}
+      - name: Fetch cover thumbnails
+        if: github.event_name != 'push'
+        continue-on-error: true
+        run: pnpm cover-thumbnails --limit 300
+      - name: Persist cover thumbnails
+        if: github.event_name != 'push'
+        continue-on-error: true
+        run: bash scripts/covers-branch.sh persist
       - name: Persist database
         if: github.event_name != 'push'
         run: bash scripts/data-branch.sh persist
