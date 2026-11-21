@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { topListAlbums } from "@arscritica/db";
+import { withListCovers } from "@/lib/covers";
 import { getDb } from "@/lib/db";
 import { pageMetadata } from "@/lib/seo";
 import { AlbumTopLists } from "./top-lists";
@@ -14,7 +15,7 @@ export default function AlbumTopListsPage() {
   return (
     <>
       <h1 className="visually-hidden">Topplistor</h1>
-      <AlbumTopLists albums={topListAlbums(getDb())} />
+      <AlbumTopLists albums={withListCovers(topListAlbums(getDb()))} />
     </>
   );
 }

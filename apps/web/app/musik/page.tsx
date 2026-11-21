@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { bestAlbumsRightNow, recentlyReviewedAlbums } from "@arscritica/db";
 import { AlbumList } from "@/components/album-list";
+import { withListCovers } from "@/lib/covers";
 import { getDb } from "@/lib/db";
 import { pageMetadata, siteName } from "@/lib/seo";
 
@@ -15,8 +16,8 @@ export const metadata: Metadata = pageMetadata({
 
 export default function MusicHomePage() {
   const db = getDb();
-  const best = bestAlbumsRightNow(db);
-  const recent = recentlyReviewedAlbums(db);
+  const best = withListCovers(bestAlbumsRightNow(db));
+  const recent = withListCovers(recentlyReviewedAlbums(db));
 
   return (
     <>

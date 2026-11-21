@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { artistSlugs, getArtist } from "@arscritica/db";
 import { AlbumList } from "@/components/album-list";
+import { withListCovers } from "@/lib/covers";
 import { getDb } from "@/lib/db";
 import { pageMetadata } from "@/lib/seo";
 import { slugParams } from "@/lib/static-params";
@@ -33,7 +34,7 @@ export default async function ArtistPage({ params }: Props) {
   return (
     <>
       <h1>{artist.name}</h1>
-      <AlbumList albums={artist.albums} />
+      <AlbumList albums={withListCovers(artist.albums)} />
     </>
   );
 }
