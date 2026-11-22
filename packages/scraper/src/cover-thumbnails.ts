@@ -53,11 +53,21 @@ let failed = 0;
 for (const [index, url] of queue.entries()) {
   const key = coverThumbnailKey(url)!;
   const started = Date.now();
+  if (index > 0 && index % 100 === 0) {
+    writeFileSync(failuresPath, `${JSON.stringify(failures, null, 1)}\n`);
+    console.log(`${index}/${queue.length}: ${created} created, ${failed} failed`);
+  }
   try {
     const response = await fetch(url, {
       headers: { "user-agent": MUSICBRAINZ_USER_AGENT },
       signal: AbortSignal.timeout(30_000),
     });
+    if (response.status >= 400 && response.status < 500) {
+      failures[key] = new Date().toISOString();
+      failed++;
+      console.warn(`Cover thumbnail missing for ${url}: HTTP ${response.status}`);
+      continue;
+    }
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const image = await sharp(Buffer.from(await response.arrayBuffer()))
       .resize(SIZE, SIZE, { fit: "cover" })
@@ -67,15 +77,11 @@ for (const [index, url] of queue.entries()) {
     delete failures[key];
     created++;
   } catch (error) {
-    failures[key] = new Date().toISOString();
     failed++;
     console.warn(`Cover thumbnail failed for ${url}: ${String(error)}`);
+  } finally {
+    await sleep(Math.max(0, delayMs - (Date.now() - started)));
   }
-  if ((index + 1) % 100 === 0) {
-    writeFileSync(failuresPath, `${JSON.stringify(failures, null, 1)}\n`);
-    console.log(`${index + 1}/${queue.length}: ${created} created, ${failed} failed`);
-  }
-  await sleep(Math.max(0, delayMs - (Date.now() - started)));
 }
 writeFileSync(failuresPath, `${JSON.stringify(failures, null, 1)}\n`);
 console.log(`Created ${created} and failed ${failed} of ${queue.length} missing cover thumbnails.`);
